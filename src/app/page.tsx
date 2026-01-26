@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake, Sparkles, GalleryHorizontal, Map } from "lucide-react";
-import type { Task, Plan, LifeGoal, Habit, GoalStatus, Affirmation, VisionBoard, VisionBoardItem } from "@/lib/types";
+import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake, Sparkles, GalleryHorizontal, Map, Trophy, Flag, ImagePlus } from "lucide-react";
+import type { Task, Plan, LifeGoal, Habit, GoalStatus, Affirmation, VisionBoard, VisionBoardItem, TimelineEvent } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import TaskCard from "@/components/task-card";
 import { AddTaskDialog } from "@/components/add-task-dialog";
@@ -23,6 +23,8 @@ import VisionBoardCard from "@/components/vision-board-card";
 import VisionBoardSheet from "@/components/vision-board-sheet";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { ActivityOverviewSheet } from "@/components/activity-overview-sheet";
+import JourneyTimeline from "@/components/journey-timeline";
+import { Card, CardContent } from "@/components/ui/card";
 
 
 const initialPlans: Plan[] = [
@@ -90,7 +92,7 @@ const initialTasks: Task[] = [
 
 const initialLifeGoals: LifeGoal[] = [
     {
-        id: 'goal-1',
+        id: `goal-${new Date(new Date().setFullYear(new Date().getFullYear() - 1)).getTime()}`,
         title: 'Learn to play the guitar',
         description: 'Practice every day to be able to play my favorite songs.',
         category: 'Personal',
@@ -98,7 +100,7 @@ const initialLifeGoals: LifeGoal[] = [
         targetDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
     },
     {
-        id: 'goal-2',
+        id: `goal-${new Date(new Date().setMonth(new Date().getMonth() - 6)).getTime()}`,
         title: 'Run a 5k',
         description: 'Train consistently to improve my running endurance and speed.',
         category: 'Health',
@@ -106,31 +108,31 @@ const initialLifeGoals: LifeGoal[] = [
         targetDate: new Date(new Date().setMonth(new Date().getMonth() + 3)),
     },
      {
-        id: 'goal-3',
+        id: `goal-${new Date(new Date().setFullYear(new Date().getFullYear() - 2)).getTime()}`,
         title: 'Read 12 books',
         description: 'Finish one book every month.',
         category: 'Personal',
         status: 'Achieved',
-        targetDate: new Date(new Date().setFullYear(new Date().getFullYear(), 11, 31)),
+        targetDate: new Date(new Date().setFullYear(new Date().getFullYear() -1, 11, 31)),
     }
 ]
 
 const initialHabits: Habit[] = [
     {
         id: 'habit-1',
-        goalId: 'goal-1',
+        goalId: initialLifeGoals[0].id,
         name: 'Practice chords for 15 minutes',
         completions: [getTodayDateString()],
     },
     {
         id: 'habit-2',
-        goalId: 'goal-2',
+        goalId: initialLifeGoals[1].id,
         name: 'Go for a 30-minute run',
         completions: [getTodayDateString()],
     },
     {
         id: 'habit-3',
-        goalId: 'goal-1',
+        goalId: initialLifeGoals[0].id,
         name: 'Learn a new song',
         completions: [],
     }
@@ -160,7 +162,7 @@ const initialVisionBoards: VisionBoard[] = [
 
 const initialVisionBoardItems: VisionBoardItem[] = [
     {
-        id: 'vbi-1',
+        id: `vbi-${new Date(new Date().setDate(new Date().getDate() - 10)).getTime()}`,
         visionBoardId: 'vb-1',
         prompt: 'A beautiful beach in the Maldives',
         imageUrl: 'https://images.unsplash.com/photo-1512100356356-de1b84283e18?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxiZWFjaCUyMHZhY2F0aW9ufGVufDB8fHx8MTc3MDA2Nzc3OXww&ixlib=rb-4.1.0&q=80&w=1080',
@@ -195,6 +197,64 @@ export default function Home() {
   const [activeVisionBoard, setActiveVisionBoard] = useState<VisionBoard | null>(null);
   
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+
+  const timelineEvents = useMemo((): TimelineEvent[] => {
+    const events: TimelineEvent[] = [];
+
+    tasks.forEach(task => {
+        if (task.completed && task.completedAt) {
+            events.push({
+                id: `task-${task.id}`,
+                date: task.completedAt,
+                type: 'task-completed',
+                title: 'Task Completed',
+                description: task.title,
+                icon: <CheckCircle2 className="h-4 w-4" />,
+            });
+        }
+    });
+
+    lifeGoals.forEach(goal => {
+        if (goal.status === 'Achieved') {
+            events.push({
+                id: `goal-achieved-${goal.id}`,
+                date: goal.targetDate || new Date(), // Fallback
+                type: 'goal-achieved',
+                title: 'Goal Achieved',
+                description: goal.title,
+                icon: <Trophy className="h-4 w-4" />,
+            });
+        } else {
+             const timestamp = parseInt(goal.id.split('-')[1], 10);
+             if (!isNaN(timestamp)) {
+                events.push({
+                    id: `goal-created-${goal.id}`,
+                    date: new Date(timestamp),
+                    type: 'goal-created',
+                    title: 'Goal Started',
+                    description: goal.title,
+                    icon: <Flag className="h-4 w-4" />,
+                });
+             }
+        }
+    });
+
+    visionBoardItems.forEach(item => {
+        const timestamp = parseInt(item.id.split('-')[1], 10);
+        if (!isNaN(timestamp)) {
+            events.push({
+                id: `vbi-${item.id}`,
+                date: new Date(timestamp),
+                type: 'vision-item-added',
+                title: 'Vision Added',
+                description: item.prompt,
+                icon: <ImagePlus className="h-4 w-4" />,
+            });
+        }
+    });
+
+    return events.sort((a, b) => b.date.getTime() - a.date.getTime());
+}, [tasks, lifeGoals, visionBoardItems]);
 
   const handleOpenAddTaskDialogForNew = () => {
     setEditingTask(null);
@@ -493,6 +553,19 @@ export default function Home() {
                         href="#vision-boards-section"
                     />
                 </div>
+
+                <div id="journey-section">
+                    <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
+                        <Flag className="text-primary" />
+                        <span>Your Journey</span>
+                    </h2>
+                    <Card>
+                        <CardContent className="p-6">
+                            <JourneyTimeline events={timelineEvents} />
+                        </CardContent>
+                    </Card>
+                </div>
+
               <TaskProgress tasks={selectedPlanId ? tasks.filter(t => t.planId === selectedPlanId) : tasks} />
               
               <div id="vision-boards-section">

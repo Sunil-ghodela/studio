@@ -60,3 +60,12 @@ export interface VisionBoardItem {
   prompt: string;
   imageUrl: string;
 }
+
+export interface TimelineEvent {
+  id: string;
+  date: Date;
+  title: string;
+  description?: string;
+  icon: React.ReactNode;
+  type: 'task-completed' | 'goal-achieved' | 'vision-item-added' | 'goal-created';
+}
