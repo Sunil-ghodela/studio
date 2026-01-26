@@ -1,17 +1,33 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { PlusCircle, ListTodo, CheckCircle2 } from "lucide-react";
-import type { Task } from "@/lib/types";
+import { PlusCircle, ListTodo, CheckCircle2, ClipboardList } from "lucide-react";
+import type { Task, Plan } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import TaskCard from "@/components/task-card";
 import { AddTaskDialog } from "@/components/add-task-dialog";
 import TaskProgress from "@/components/task-progress";
 import Logo from "@/components/logo";
+import { AddPlanDialog } from "@/components/add-plan-dialog";
+import PlanCard from "@/components/plan-card";
+
+const initialPlans: Plan[] = [
+    {
+        id: 'plan-1',
+        title: 'Q3 Marketing Campaign',
+        description: 'All tasks related to the Q3 marketing campaign.',
+    },
+    {
+        id: 'plan-2',
+        title: 'Website Redesign',
+        description: 'Tasks for the upcoming website redesign project.',
+    },
+];
 
 const initialTasks: Task[] = [
   {
     id: "task-1",
+    planId: "plan-1",
     title: "Finalize Q3 marketing report",
     description: "Review the latest analytics and compile the final report for the Q3 marketing campaign. Circulate to the team for feedback before the EOD.",
     dueDate: new Date(new Date().setDate(new Date().getDate() + 1)),
@@ -30,6 +46,7 @@ const initialTasks: Task[] = [
   },
   {
     id: "task-3",
+    planId: "plan-2",
     title: "Update project documentation",
     description: "Add new API endpoints to the project documentation and update the setup guide.",
     dueDate: new Date(new Date().setDate(new Date().getDate() + 3)),
@@ -41,6 +58,7 @@ const initialTasks: Task[] = [
   },
     {
     id: "task-4",
+    planId: "plan-1",
     title: "Review video drafts",
     description: "Go through the video drafts for the new ad campaign and provide feedback to the creative team.",
     dueDate: new Date(new Date().setDate(new Date().getDate() + 2)),
@@ -53,38 +71,79 @@ const initialTasks: Task[] = [
 ];
 
 export default function Home() {
+  const [plans, setPlans] = useState<Plan[]>(initialPlans);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
+  const [isAddPlanDialogOpen, setIsAddPlanDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
-  const handleOpenDialogForNew = () => {
+  const handleOpenAddTaskDialogForNew = () => {
     setEditingTask(null);
-    setIsDialogOpen(true);
+    setIsAddTaskDialogOpen(true);
   };
 
-  const handleOpenDialogForEdit = (task: Task) => {
+  const handleOpenAddTaskDialogForEdit = (task: Task) => {
     setEditingTask(task);
-    setIsDialogOpen(true);
+    setIsAddTaskDialogOpen(true);
   };
 
-  const handleSaveTask = (taskData: Omit<Task, 'id' | 'completed' | 'files'> & { files: FileList | null }) => {
+  const handleOpenPlanDialogForNew = () => {
+    setEditingPlan(null);
+    setIsAddPlanDialogOpen(true);
+  };
+
+  const handleOpenPlanDialogForEdit = (plan: Plan) => {
+    setEditingPlan(plan);
+    setIsAddPlanDialogOpen(true);
+  };
+
+  const handleSaveTask = (data: { title: string; description?: string; dueDate: Date; priority: "Low" | "Medium" | "High"; files: FileList | null; planId?: string; }) => {
+    const taskData = {
+        ...data,
+        planId: data.planId === '' ? undefined : data.planId,
+    };
+
     if (editingTask) {
-      // Edit existing task
       setTasks(tasks.map((t) => (t.id === editingTask.id ? { ...editingTask, ...taskData, files: t.files } : t)));
     } else {
-      // Add new task
       const newTask: Task = {
         id: `task-${Date.now()}`,
-        ...taskData,
+        title: taskData.title,
+        description: taskData.description,
+        dueDate: taskData.dueDate,
+        priority: taskData.priority,
+        planId: taskData.planId,
         completed: false,
-        files: taskData.files && taskData.files.length > 0 ? Array.from(taskData.files).map(f => ({ id: `file-${Date.now()}`, name: f.name, url: '#', type: f.type.startsWith('video') ? 'video' : 'document' })) : []
+        files: data.files && data.files.length > 0 ? Array.from(data.files).map(f => ({ id: `file-${Date.now()}`, name: f.name, url: '#', type: f.type.startsWith('video') ? 'video' : 'document' })) : []
       };
       setTasks([newTask, ...tasks]);
     }
   };
 
+  const handleSavePlan = (planData: Omit<Plan, 'id'>) => {
+    if (editingPlan) {
+      setPlans(plans.map(p => p.id === editingPlan.id ? { ...editingPlan, ...planData } : p));
+    } else {
+      const newPlan: Plan = {
+        id: `plan-${Date.now()}`,
+        ...planData,
+      };
+      setPlans([newPlan, ...plans]);
+    }
+  }
+
   const handleDeleteTask = (taskId: string) => {
     setTasks(tasks.filter((t) => t.id !== taskId));
+  };
+
+  const handleDeletePlan = (planId: string) => {
+    setPlans(plans.filter((p) => p.id !== planId));
+    setTasks(tasks.map((t) => t.planId === planId ? {...t, planId: undefined} : t));
+    if (selectedPlanId === planId) {
+        setSelectedPlanId(null);
+    }
   };
 
   const handleToggleComplete = (taskId: string) => {
@@ -96,12 +155,13 @@ export default function Home() {
   };
 
   const { todoTasks, completedTasks } = useMemo(() => {
-    const sortedTasks = [...tasks].sort((a, b) => b.dueDate.getTime() - a.dueDate.getTime());
+    const filteredTasks = selectedPlanId ? tasks.filter(t => t.planId === selectedPlanId) : tasks.filter(t => !t.planId);
+    const sortedTasks = [...filteredTasks].sort((a, b) => b.dueDate.getTime() - a.dueDate.getTime());
     return {
       todoTasks: sortedTasks.filter((t) => !t.completed),
       completedTasks: sortedTasks.filter((t) => t.completed),
     };
-  }, [tasks]);
+  }, [tasks, selectedPlanId]);
 
   return (
     <>
@@ -111,20 +171,48 @@ export default function Home() {
             <Logo />
             <h1 className="text-xl font-bold tracking-tight">TaskMaster</h1>
           </div>
-          <div className="ml-auto">
-            <Button onClick={handleOpenDialogForNew}>
+          <div className="ml-auto flex items-center gap-2">
+            <Button onClick={handleOpenPlanDialogForNew} variant="outline">
+              <PlusCircle />
+              <span>Add Plan</span>
+            </Button>
+            <Button onClick={handleOpenAddTaskDialogForNew}>
               <PlusCircle />
               <span>Add Task</span>
             </Button>
           </div>
         </header>
         <main className="flex-1 space-y-8 p-4 sm:p-6 md:p-8">
-          <TaskProgress tasks={tasks} />
+           <TaskProgress tasks={selectedPlanId ? tasks.filter(t => t.planId === selectedPlanId) : tasks} />
+          
+           <div>
+            <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
+              <ClipboardList className="text-primary" />
+              <span>Plans</span>
+            </h2>
+            {plans.length > 0 ? (
+               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {plans.map((plan) => (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    tasks={tasks}
+                    onSelectPlan={setSelectedPlanId}
+                    onEdit={handleOpenPlanDialogForEdit}
+                    onDelete={handleDeletePlan}
+                    isSelected={selectedPlanId === plan.id}
+                  />
+                ))}
+              </div>
+            ) : (
+                <p className="text-muted-foreground">No plans yet. Create one to get started!</p>
+            )}
+          </div>
 
           <div>
             <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
               <ListTodo className="text-primary" />
-              <span>To-Do</span>
+              <span>To-Do {selectedPlanId ? `- ${plans.find(p => p.id === selectedPlanId)?.title}` : '- Unplanned'}</span>
             </h2>
             {todoTasks.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -132,14 +220,14 @@ export default function Home() {
                   <TaskCard
                     key={task.id}
                     task={task}
-                    onEdit={handleOpenDialogForEdit}
+                    onEdit={handleOpenAddTaskDialogForEdit}
                     onDelete={handleDeleteTask}
                     onToggleComplete={handleToggleComplete}
                   />
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground">You're all caught up!</p>
+              <p className="text-muted-foreground">{selectedPlanId ? 'No to-do tasks in this plan.' : "You're all caught up with unplanned tasks!"}</p>
             )}
           </div>
           
@@ -154,7 +242,7 @@ export default function Home() {
                   <TaskCard
                     key={task.id}
                     task={task}
-                    onEdit={handleOpenDialogForEdit}
+                    onEdit={handleOpenAddTaskDialogForEdit}
                     onDelete={handleDeleteTask}
                     onToggleComplete={handleToggleComplete}
                   />
@@ -166,10 +254,18 @@ export default function Home() {
       </div>
       <AddTaskDialog
         key={editingTask?.id ?? "new"}
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={isAddTaskDialogOpen}
+        onOpenChange={setIsAddTaskDialogOpen}
         task={editingTask}
         onSave={handleSaveTask}
+        plans={plans}
+      />
+      <AddPlanDialog
+        key={editingPlan?.id ?? "new-plan"}
+        open={isAddPlanDialogOpen}
+        onOpenChange={setIsAddPlanDialogOpen}
+        plan={editingPlan}
+        onSave={handleSavePlan}
       />
     </>
   );

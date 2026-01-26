@@ -38,7 +38,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import type { Task, Priority } from "@/lib/types";
+import type { Task, Priority, Plan } from "@/lib/types";
 import { getPrioritySuggestion } from "@/app/actions";
 
 const formSchema = z.object({
@@ -47,6 +47,7 @@ const formSchema = z.object({
   dueDate: z.date(),
   priority: z.enum(["Low", "Medium", "High"]),
   files: z.any().optional(),
+  planId: z.string().optional(),
 });
 
 type AddTaskFormValues = z.infer<typeof formSchema>;
@@ -56,9 +57,10 @@ interface AddTaskDialogProps {
   onOpenChange: (open: boolean) => void;
   task?: Task | null;
   onSave: (data: AddTaskFormValues) => void;
+  plans: Plan[];
 }
 
-export function AddTaskDialog({ open, onOpenChange, task, onSave }: AddTaskDialogProps) {
+export function AddTaskDialog({ open, onOpenChange, task, onSave, plans }: AddTaskDialogProps) {
   const { toast } = useToast();
   const [isAIPending, startAITransition] = useTransition();
 
@@ -70,6 +72,7 @@ export function AddTaskDialog({ open, onOpenChange, task, onSave }: AddTaskDialo
       dueDate: task?.dueDate ?? new Date(),
       priority: task?.priority ?? "Medium",
       files: null,
+      planId: task?.planId ?? "",
     },
   });
   
@@ -150,6 +153,29 @@ export function AddTaskDialog({ open, onOpenChange, task, onSave }: AddTaskDialo
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="planId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Plan</FormLabel>
+                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Assign to a plan (optional)" />
+                          </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                          <SelectItem value="">None</SelectItem>
+                          {plans.map(plan => (
+                            <SelectItem key={plan.id} value={plan.id}>{plan.title}</SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

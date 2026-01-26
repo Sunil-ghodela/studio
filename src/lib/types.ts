@@ -7,10 +7,17 @@ export interface TaskFile {
   type: "video" | "image" | "document";
 }
 
-export interface Task {
+export interface Plan {
   id: string;
   title: string;
-  description: string;
+  description?: string;
+}
+
+export interface Task {
+  id: string;
+  planId?: string;
+  title: string;
+  description?: string;
   dueDate: Date;
   priority: Priority;
   completed: boolean;

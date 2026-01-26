@@ -121,14 +121,14 @@ export default function TaskCard({
         <Badge className={cn(priorityStyles[task.priority])}>
           {task.priority} Priority
         </Badge>
-        <p
+        {task.description && <p
           className={cn(
             "text-sm text-muted-foreground",
             task.completed && "line-through"
           )}
         >
           {task.description}
-        </p>
+        </p>}
       </CardContent>
       {task.files.length > 0 && (
         <CardFooter className="flex-col items-start gap-2">
