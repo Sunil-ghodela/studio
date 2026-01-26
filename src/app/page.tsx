@@ -16,6 +16,7 @@ import { Accordion } from "@/components/ui/accordion";
 import { AddHabitDialog } from "@/components/add-habit-dialog";
 import { getTodayDateString } from "@/lib/date-utils";
 import TaskActivityChart from "@/components/task-activity-chart";
+import SummaryCard from "@/components/summary-card";
 
 const initialPlans: Plan[] = [
     {
@@ -293,6 +294,10 @@ export default function Home() {
     };
   }, [tasks, selectedPlanId]);
 
+  const totalPlans = plans.length;
+  const allTodoTasksCount = tasks.filter(t => !t.completed).length;
+  const inProgressGoals = lifeGoals.filter(g => g.status === 'In Progress').length;
+
   return (
     <>
       <div className="flex min-h-screen w-full flex-col">
@@ -317,10 +322,30 @@ export default function Home() {
           </div>
         </header>
         <main className="flex-1 space-y-8 p-4 sm:p-6 md:p-8">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <SummaryCard
+                    title="Active Plans"
+                    value={totalPlans}
+                    icon={<ClipboardList className="h-4 w-4 text-muted-foreground" />}
+                    href="#plans-section"
+                />
+                <SummaryCard
+                    title="Pending Tasks"
+                    value={allTodoTasksCount}
+                    icon={<ListTodo className="h-4 w-4 text-muted-foreground" />}
+                    href="#todo-section"
+                />
+                <SummaryCard
+                    title="In-Progress Goals"
+                    value={inProgressGoals}
+                    icon={<HeartHandshake className="h-4 w-4 text-muted-foreground" />}
+                    href="#life-goals-section"
+                />
+            </div>
            <TaskProgress tasks={selectedPlanId ? tasks.filter(t => t.planId === selectedPlanId) : tasks} />
            <TaskActivityChart tasks={tasks} />
           
-           <div>
+           <div id="plans-section">
             <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
               <ClipboardList className="text-primary" />
               <span>Plans</span>
@@ -344,7 +369,7 @@ export default function Home() {
             )}
           </div>
           
-          <div>
+          <div id="life-goals-section">
             <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
                 <HeartHandshake className="text-primary" />
                 <span>Life Goals</span>
@@ -369,7 +394,7 @@ export default function Home() {
              )}
           </div>
 
-          <div>
+          <div id="todo-section">
             <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
               <ListTodo className="text-primary" />
               <span>To-Do {selectedPlanId ? `- ${plans.find(p => p.id === selectedPlanId)?.title}` : '- Unplanned'}</span>
