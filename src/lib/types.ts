@@ -22,6 +22,7 @@ export interface Task {
   priority: Priority;
   completed: boolean;
   files: TaskFile[];
+  completedAt?: Date | null;
 }
 
 export type GoalCategory = "Personal" | "Health" | "Career" | "Marriage" | "Children";

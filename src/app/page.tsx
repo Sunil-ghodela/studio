@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake } from "lucide-react";
+import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake, Activity } from "lucide-react";
 import type { Task, Plan, LifeGoal, Habit, GoalStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import TaskCard from "@/components/task-card";
@@ -15,6 +15,7 @@ import LifeGoalCard from "@/components/life-goal-card";
 import { Accordion } from "@/components/ui/accordion";
 import { AddHabitDialog } from "@/components/add-habit-dialog";
 import { getTodayDateString } from "@/lib/date-utils";
+import TaskActivityChart from "@/components/task-activity-chart";
 
 const initialPlans: Plan[] = [
     {
@@ -39,6 +40,7 @@ const initialTasks: Task[] = [
     priority: "High",
     completed: false,
     files: [],
+    completedAt: null,
   },
   {
     id: "task-2",
@@ -48,6 +50,7 @@ const initialTasks: Task[] = [
     priority: "Low",
     completed: false,
     files: [],
+    completedAt: null,
   },
   {
     id: "task-3",
@@ -60,6 +63,7 @@ const initialTasks: Task[] = [
     files: [
       { id: "file-1", name: "Project-Plan.pdf", url: "#", type: "document" }
     ],
+    completedAt: new Date(new Date().setDate(new Date().getDate() - 1)),
   },
     {
     id: "task-4",
@@ -72,6 +76,7 @@ const initialTasks: Task[] = [
     files: [
         { id: "file-2", name: "ad_campaign_v1.mp4", url: "#", type: "video" }
     ],
+    completedAt: null,
     },
 ];
 
@@ -194,6 +199,7 @@ export default function Home() {
         priority: taskData.priority,
         planId: taskData.planId,
         completed: false,
+        completedAt: null,
         files: data.files && data.files.length > 0 ? Array.from(data.files).map(f => ({ id: `file-${Date.now()}`, name: f.name, url: '#', type: f.type.startsWith('video') ? 'video' : 'document' })) : []
       };
       setTasks([newTask, ...tasks]);
@@ -260,7 +266,7 @@ export default function Home() {
   const handleToggleComplete = (taskId: string) => {
     setTasks(
       tasks.map((t) =>
-        t.id === taskId ? { ...t, completed: !t.completed } : t
+        t.id === taskId ? { ...t, completed: !t.completed, completedAt: !t.completed ? new Date() : null } : t
       )
     );
   };
@@ -312,6 +318,7 @@ export default function Home() {
         </header>
         <main className="flex-1 space-y-8 p-4 sm:p-6 md:p-8">
            <TaskProgress tasks={selectedPlanId ? tasks.filter(t => t.planId === selectedPlanId) : tasks} />
+           <TaskActivityChart tasks={tasks} />
           
            <div>
             <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
