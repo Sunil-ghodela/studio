@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake, Activity } from "lucide-react";
+import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake } from "lucide-react";
 import type { Task, Plan, LifeGoal, Habit, GoalStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import TaskCard from "@/components/task-card";
@@ -15,7 +15,6 @@ import LifeGoalCard from "@/components/life-goal-card";
 import { Accordion } from "@/components/ui/accordion";
 import { AddHabitDialog } from "@/components/add-habit-dialog";
 import { getTodayDateString } from "@/lib/date-utils";
-import TaskActivityChart from "@/components/task-activity-chart";
 import SummaryCard from "@/components/summary-card";
 
 const initialPlans: Plan[] = [
@@ -343,7 +342,6 @@ export default function Home() {
                 />
             </div>
            <TaskProgress tasks={selectedPlanId ? tasks.filter(t => t.planId === selectedPlanId) : tasks} />
-           <TaskActivityChart tasks={tasks} />
           
            <div id="plans-section">
             <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
