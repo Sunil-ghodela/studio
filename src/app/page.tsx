@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake, Sparkles, GalleryHorizontal } from "lucide-react";
+import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake, Sparkles, GalleryHorizontal, Map } from "lucide-react";
 import type { Task, Plan, LifeGoal, Habit, GoalStatus, Affirmation, VisionBoard, VisionBoardItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import TaskCard from "@/components/task-card";
@@ -21,6 +21,9 @@ import AffirmationCard from "@/components/affirmation-card";
 import { AddVisionBoardDialog } from "@/components/add-vision-board-dialog";
 import VisionBoardCard from "@/components/vision-board-card";
 import VisionBoardSheet from "@/components/vision-board-sheet";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { ActivityOverviewSheet } from "@/components/activity-overview-sheet";
+
 
 const initialPlans: Plan[] = [
     {
@@ -174,7 +177,6 @@ export default function Home() {
   const [visionBoards, setVisionBoards] = useState<VisionBoard[]>(initialVisionBoards);
   const [visionBoardItems, setVisionBoardItems] = useState<VisionBoardItem[]>(initialVisionBoardItems);
 
-
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
   const [isAddPlanDialogOpen, setIsAddPlanDialogOpen] = useState(false);
   const [isAddLifeGoalDialogOpen, setIsAddLifeGoalDialogOpen] = useState(false);
@@ -182,6 +184,7 @@ export default function Home() {
   const [isAddAffirmationDialogOpen, setIsAddAffirmationDialogOpen] = useState(false);
   const [isAddVisionBoardDialogOpen, setIsAddVisionBoardDialogOpen] = useState(false);
   const [isVisionBoardSheetOpen, setIsVisionBoardSheetOpen] = useState(false);
+  const [isActivityOverviewOpen, setIsActivityOverviewOpen] = useState(false);
   
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
@@ -419,200 +422,218 @@ export default function Home() {
 
   return (
     <>
-      <div className="flex min-h-screen w-full flex-col">
-        <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
-          <div className="flex items-center gap-2">
-            <Logo />
-            <h1 className="text-xl font-bold tracking-tight">TaskMaster</h1>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <Button onClick={handleOpenVisionBoardDialogForNew} variant="outline">
-              <GalleryHorizontal />
-              <span>Add Vision Board</span>
-            </Button>
-            <Button onClick={handleOpenAffirmationDialogForNew} variant="outline">
-              <Sparkles />
-              <span>Add Affirmation</span>
-            </Button>
-            <Button onClick={handleOpenLifeGoalDialogForNew} variant="outline">
-              <PlusCircle />
-              <span>Add Goal</span>
-            </Button>
-            <Button onClick={handleOpenPlanDialogForNew} variant="outline">
-              <PlusCircle />
-              <span>Add Plan</span>
-            </Button>
-            <Button onClick={handleOpenAddTaskDialogForNew}>
-              <PlusCircle />
-              <span>Add Task</span>
-            </Button>
-          </div>
-        </header>
-        <main className="flex-1 space-y-8 p-4 sm:p-6 md:p-8">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <SummaryCard
-                    title="Active Plans"
-                    value={totalPlans}
-                    icon={<ClipboardList className="h-4 w-4 text-muted-foreground" />}
-                    href="#plans-section"
-                />
-                <SummaryCard
-                    title="Pending Tasks"
-                    value={allTodoTasksCount}
-                    icon={<ListTodo className="h-4 w-4 text-muted-foreground" />}
-                    href="#todo-section"
-                />
-                <SummaryCard
-                    title="In-Progress Goals"
-                    value={inProgressGoals}
-                    icon={<HeartHandshake className="h-4 w-4 text-muted-foreground" />}
-                    href="#life-goals-section"
-                />
-                <SummaryCard
-                    title="Vision Boards"
-                    value={totalVisionBoards}
-                    icon={<GalleryHorizontal className="h-4 w-4 text-muted-foreground" />}
-                    href="#vision-boards-section"
-                />
-            </div>
-           <TaskProgress tasks={selectedPlanId ? tasks.filter(t => t.planId === selectedPlanId) : tasks} />
-          
-           <div id="vision-boards-section">
-                <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
-                    <GalleryHorizontal className="text-primary" />
-                    <span>Vision Boards</span>
-                </h2>
-                {visionBoards.length > 0 ? (
+      <SidebarProvider>
+        <Sidebar>
+          <SidebarHeader className="items-center border-b">
+              <Logo />
+              <h1 className="text-xl font-bold tracking-tight group-data-[collapsible=icon]:hidden">TaskMaster</h1>
+          </SidebarHeader>
+          <SidebarContent>
+              <SidebarMenu>
+                  <SidebarMenuItem>
+                      <SidebarMenuButton onClick={() => setIsActivityOverviewOpen(true)} tooltip={{children: "Activity Overview"}}>
+                          <Map className="h-5 w-5" />
+                          <span className="group-data-[collapsible=icon]:hidden">Activity Overview</span>
+                      </SidebarMenuButton>
+                  </SidebarMenuItem>
+              </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+        <SidebarInset>
+          <div className="flex min-h-screen w-full flex-col">
+            <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
+              <SidebarTrigger className="md:hidden" />
+              <div className="ml-auto flex items-center gap-2">
+                <Button onClick={handleOpenVisionBoardDialogForNew} variant="outline">
+                  <GalleryHorizontal />
+                  <span>Add Vision Board</span>
+                </Button>
+                <Button onClick={handleOpenAffirmationDialogForNew} variant="outline">
+                  <Sparkles />
+                  <span>Add Affirmation</span>
+                </Button>
+                <Button onClick={handleOpenLifeGoalDialogForNew} variant="outline">
+                  <PlusCircle />
+                  <span>Add Goal</span>
+                </Button>
+                <Button onClick={handleOpenPlanDialogForNew} variant="outline">
+                  <PlusCircle />
+                  <span>Add Plan</span>
+                </Button>
+                <Button onClick={handleOpenAddTaskDialogForNew}>
+                  <PlusCircle />
+                  <span>Add Task</span>
+                </Button>
+              </div>
+            </header>
+            <main className="flex-1 space-y-8 p-4 sm:p-6 md:p-8">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <SummaryCard
+                        title="Active Plans"
+                        value={totalPlans}
+                        icon={<ClipboardList className="h-4 w-4 text-muted-foreground" />}
+                        href="#plans-section"
+                    />
+                    <SummaryCard
+                        title="Pending Tasks"
+                        value={allTodoTasksCount}
+                        icon={<ListTodo className="h-4 w-4 text-muted-foreground" />}
+                        href="#todo-section"
+                    />
+                    <SummaryCard
+                        title="In-Progress Goals"
+                        value={inProgressGoals}
+                        icon={<HeartHandshake className="h-4 w-4 text-muted-foreground" />}
+                        href="#life-goals-section"
+                    />
+                    <SummaryCard
+                        title="Vision Boards"
+                        value={totalVisionBoards}
+                        icon={<GalleryHorizontal className="h-4 w-4 text-muted-foreground" />}
+                        href="#vision-boards-section"
+                    />
+                </div>
+              <TaskProgress tasks={selectedPlanId ? tasks.filter(t => t.planId === selectedPlanId) : tasks} />
+              
+              <div id="vision-boards-section">
+                    <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
+                        <GalleryHorizontal className="text-primary" />
+                        <span>Vision Boards</span>
+                    </h2>
+                    {visionBoards.length > 0 ? (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {visionBoards.map((board) => (
+                                <VisionBoardCard
+                                    key={board.id}
+                                    board={board}
+                                    items={visionBoardItems.filter(item => item.visionBoardId === board.id)}
+                                    onSelectBoard={handleOpenVisionBoardSheet}
+                                    onEdit={handleOpenVisionBoardDialogForEdit}
+                                    onDelete={handleDeleteVisionBoard}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground">No vision boards yet. Create one to visualize your dreams!</p>
+                    )}
+                </div>
+              
+              <div id="affirmations-section">
+                    <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
+                        <Sparkles className="text-primary" />
+                        <span>Affirmations</span>
+                    </h2>
+                    {affirmations.length > 0 ? (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {visionBoards.map((board) => (
-                            <VisionBoardCard
-                                key={board.id}
-                                board={board}
-                                items={visionBoardItems.filter(item => item.visionBoardId === board.id)}
-                                onSelectBoard={handleOpenVisionBoardSheet}
-                                onEdit={handleOpenVisionBoardDialogForEdit}
-                                onDelete={handleDeleteVisionBoard}
-                            />
+                        {affirmations.map((affirmation) => (
+                        <AffirmationCard
+                            key={affirmation.id}
+                            affirmation={affirmation}
+                            onEdit={handleOpenAffirmationDialogForEdit}
+                            onDelete={handleDeleteAffirmation}
+                        />
                         ))}
                     </div>
-                ) : (
-                    <p className="text-muted-foreground">No vision boards yet. Create one to visualize your dreams!</p>
-                )}
-            </div>
-           
-           <div id="affirmations-section">
-                <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
-                    <Sparkles className="text-primary" />
-                    <span>Affirmations</span>
-                </h2>
-                {affirmations.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {affirmations.map((affirmation) => (
-                    <AffirmationCard
-                        key={affirmation.id}
-                        affirmation={affirmation}
-                        onEdit={handleOpenAffirmationDialogForEdit}
-                        onDelete={handleDeleteAffirmation}
-                    />
-                    ))}
+                    ) : (
+                        <p className="text-muted-foreground">No affirmations yet. Add one to get started!</p>
+                    )}
                 </div>
-                ) : (
-                    <p className="text-muted-foreground">No affirmations yet. Add one to get started!</p>
-                )}
-            </div>
 
-           <div id="plans-section">
-            <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
-              <ClipboardList className="text-primary" />
-              <span>Plans</span>
-            </h2>
-            {plans.length > 0 ? (
-               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {plans.map((plan) => (
-                  <PlanCard
-                    key={plan.id}
-                    plan={plan}
-                    tasks={tasks}
-                    onSelectPlan={setSelectedPlanId}
-                    onEdit={handleOpenPlanDialogForEdit}
-                    onDelete={handleDeletePlan}
-                    isSelected={selectedPlanId === plan.id}
-                  />
-                ))}
-              </div>
-            ) : (
-                <p className="text-muted-foreground">No plans yet. Create one to get started!</p>
-            )}
-          </div>
-          
-          <div id="life-goals-section">
-            <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
-                <HeartHandshake className="text-primary" />
-                <span>Life Goals</span>
-            </h2>
-             {lifeGoals.length > 0 ? (
-                <Accordion type="multiple" className="w-full space-y-0">
-                    {lifeGoals.map(goal => (
-                        <LifeGoalCard
-                            key={goal.id}
-                            goal={goal}
-                            habits={habits}
-                            onEditGoal={handleOpenLifeGoalDialogForEdit}
-                            onDeleteGoal={handleDeleteLifeGoal}
-                            onAddHabit={handleOpenAddHabitDialog}
-                            onToggleHabitComplete={handleToggleHabitComplete}
-                            onUpdateGoalStatus={handleUpdateGoalStatus}
-                        />
+              <div id="plans-section">
+                <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
+                  <ClipboardList className="text-primary" />
+                  <span>Plans</span>
+                </h2>
+                {plans.length > 0 ? (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {plans.map((plan) => (
+                      <PlanCard
+                        key={plan.id}
+                        plan={plan}
+                        tasks={tasks}
+                        onSelectPlan={setSelectedPlanId}
+                        onEdit={handleOpenPlanDialogForEdit}
+                        onDelete={handleDeletePlan}
+                        isSelected={selectedPlanId === plan.id}
+                      />
                     ))}
-                </Accordion>
-             ) : (
-                <p className="text-muted-foreground">No life goals yet. Add one to start your journey!</p>
-             )}
-          </div>
+                  </div>
+                ) : (
+                    <p className="text-muted-foreground">No plans yet. Create one to get started!</p>
+                )}
+              </div>
+              
+              <div id="life-goals-section">
+                <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
+                    <HeartHandshake className="text-primary" />
+                    <span>Life Goals</span>
+                </h2>
+                {lifeGoals.length > 0 ? (
+                    <Accordion type="multiple" className="w-full space-y-0">
+                        {lifeGoals.map(goal => (
+                            <LifeGoalCard
+                                key={goal.id}
+                                goal={goal}
+                                habits={habits}
+                                onEditGoal={handleOpenLifeGoalDialogForEdit}
+                                onDeleteGoal={handleDeleteLifeGoal}
+                                onAddHabit={handleOpenAddHabitDialog}
+                                onToggleHabitComplete={handleToggleHabitComplete}
+                                onUpdateGoalStatus={handleUpdateGoalStatus}
+                            />
+                        ))}
+                    </Accordion>
+                ) : (
+                    <p className="text-muted-foreground">No life goals yet. Add one to start your journey!</p>
+                )}
+              </div>
 
-          <div id="todo-section">
-            <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
-              <ListTodo className="text-primary" />
-              <span>To-Do {selectedPlanId ? `- ${plans.find(p => p.id === selectedPlanId)?.title}` : '- Unplanned'}</span>
-            </h2>
-            {todoTasks.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {todoTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onEdit={handleOpenAddTaskDialogForEdit}
-                    onDelete={handleDeleteTask}
-                    onToggleComplete={handleToggleComplete}
-                  />
-                ))}
+              <div id="todo-section">
+                <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
+                  <ListTodo className="text-primary" />
+                  <span>To-Do {selectedPlanId ? `- ${plans.find(p => p.id === selectedPlanId)?.title}` : '- Unplanned'}</span>
+                </h2>
+                {todoTasks.length > 0 ? (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {todoTasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        onEdit={handleOpenAddTaskDialogForEdit}
+                        onDelete={handleDeleteTask}
+                        onToggleComplete={handleToggleComplete}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">{selectedPlanId ? 'No to-do tasks in this plan.' : "You're all caught up with unplanned tasks!"}</p>
+                )}
               </div>
-            ) : (
-              <p className="text-muted-foreground">{selectedPlanId ? 'No to-do tasks in this plan.' : "You're all caught up with unplanned tasks!"}</p>
-            )}
+              
+              {completedTasks.length > 0 && (
+                <div>
+                  <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
+                    <CheckCircle2 className="text-green-500" />
+                    <span>Completed</span>
+                  </h2>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {completedTasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        onEdit={handleOpenAddTaskDialogForEdit}
+                        onDelete={handleDeleteTask}
+                        onToggleComplete={handleToggleComplete}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </main>
           </div>
-          
-          {completedTasks.length > 0 && (
-            <div>
-              <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
-                <CheckCircle2 className="text-green-500" />
-                <span>Completed</span>
-              </h2>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {completedTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onEdit={handleOpenAddTaskDialogForEdit}
-                    onDelete={handleDeleteTask}
-                    onToggleComplete={handleToggleComplete}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </main>
-      </div>
+        </SidebarInset>
+      </SidebarProvider>
+
       <AddTaskDialog
         key={editingTask?.id ?? "new"}
         open={isAddTaskDialogOpen}
@@ -664,6 +685,14 @@ export default function Home() {
           onDeleteItem={handleDeleteVisionBoardItem}
         />
       )}
+      <ActivityOverviewSheet
+        open={isActivityOverviewOpen}
+        onOpenChange={setIsActivityOverviewOpen}
+        tasks={tasks}
+        lifeGoals={lifeGoals}
+        plans={plans}
+        visionBoards={visionBoards}
+      />
     </>
   );
 }
