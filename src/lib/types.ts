@@ -48,3 +48,15 @@ export interface LifeGoal {
     status: GoalStatus;
     targetDate?: Date;
 }
+
+export interface VisionBoard {
+  id: string;
+  title: string;
+}
+
+export interface VisionBoardItem {
+  id: string;
+  visionBoardId: string;
+  prompt: string;
+  imageUrl: string;
+}

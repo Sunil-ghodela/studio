@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake, Sparkles } from "lucide-react";
-import type { Task, Plan, LifeGoal, Habit, GoalStatus, Affirmation } from "@/lib/types";
+import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake, Sparkles, GalleryHorizontal } from "lucide-react";
+import type { Task, Plan, LifeGoal, Habit, GoalStatus, Affirmation, VisionBoard, VisionBoardItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import TaskCard from "@/components/task-card";
 import { AddTaskDialog } from "@/components/add-task-dialog";
@@ -18,6 +18,9 @@ import { getTodayDateString } from "@/lib/date-utils";
 import SummaryCard from "@/components/summary-card";
 import { AddAffirmationDialog } from "@/components/add-affirmation-dialog";
 import AffirmationCard from "@/components/affirmation-card";
+import { AddVisionBoardDialog } from "@/components/add-vision-board-dialog";
+import VisionBoardCard from "@/components/vision-board-card";
+import VisionBoardSheet from "@/components/vision-board-sheet";
 
 const initialPlans: Plan[] = [
     {
@@ -141,6 +144,26 @@ const initialAffirmations: Affirmation[] = [
     },
 ];
 
+const initialVisionBoards: VisionBoard[] = [
+    {
+        id: 'vb-1',
+        title: 'My Dream Vacation',
+    },
+    {
+        id: 'vb-2',
+        title: 'Career Aspirations',
+    },
+];
+
+const initialVisionBoardItems: VisionBoardItem[] = [
+    {
+        id: 'vbi-1',
+        visionBoardId: 'vb-1',
+        prompt: 'A beautiful beach in the Maldives',
+        imageUrl: 'https://images.unsplash.com/photo-1512100356356-de1b84283e18?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxiZWFjaCUyMHZhY2F0aW9ufGVufDB8fHx8MTc3MDA2Nzc3OXww&ixlib=rb-4.1.0&q=80&w=1080',
+    },
+];
+
 
 export default function Home() {
   const [plans, setPlans] = useState<Plan[]>(initialPlans);
@@ -148,18 +171,25 @@ export default function Home() {
   const [lifeGoals, setLifeGoals] = useState<LifeGoal[]>(initialLifeGoals);
   const [habits, setHabits] = useState<Habit[]>(initialHabits);
   const [affirmations, setAffirmations] = useState<Affirmation[]>(initialAffirmations);
+  const [visionBoards, setVisionBoards] = useState<VisionBoard[]>(initialVisionBoards);
+  const [visionBoardItems, setVisionBoardItems] = useState<VisionBoardItem[]>(initialVisionBoardItems);
+
 
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
   const [isAddPlanDialogOpen, setIsAddPlanDialogOpen] = useState(false);
   const [isAddLifeGoalDialogOpen, setIsAddLifeGoalDialogOpen] = useState(false);
   const [isAddHabitDialogOpen, setIsAddHabitDialogOpen] = useState(false);
   const [isAddAffirmationDialogOpen, setIsAddAffirmationDialogOpen] = useState(false);
+  const [isAddVisionBoardDialogOpen, setIsAddVisionBoardDialogOpen] = useState(false);
+  const [isVisionBoardSheetOpen, setIsVisionBoardSheetOpen] = useState(false);
   
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [editingLifeGoal, setEditingLifeGoal] = useState<LifeGoal | null>(null);
   const [editingAffirmation, setEditingAffirmation] = useState<Affirmation | null>(null);
+  const [editingVisionBoard, setEditingVisionBoard] = useState<VisionBoard | null>(null);
   const [activeGoalIdForHabit, setActiveGoalIdForHabit] = useState<string | null>(null);
+  const [activeVisionBoard, setActiveVisionBoard] = useState<VisionBoard | null>(null);
   
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
@@ -206,6 +236,21 @@ export default function Home() {
   const handleOpenAffirmationDialogForEdit = (affirmation: Affirmation) => {
     setEditingAffirmation(affirmation);
     setIsAddAffirmationDialogOpen(true);
+  };
+
+  const handleOpenVisionBoardDialogForNew = () => {
+    setEditingVisionBoard(null);
+    setIsAddVisionBoardDialogOpen(true);
+  };
+
+  const handleOpenVisionBoardDialogForEdit = (board: VisionBoard) => {
+    setEditingVisionBoard(board);
+    setIsAddVisionBoardDialogOpen(true);
+  };
+
+  const handleOpenVisionBoardSheet = (board: VisionBoard) => {
+    setActiveVisionBoard(board);
+    setIsVisionBoardSheetOpen(true);
   };
 
   const handleSaveTask = (data: { title: string; description?: string; dueDate: Date; priority: "Low" | "Medium" | "High"; files: FileList | null; planId?: string; }) => {
@@ -268,6 +313,28 @@ export default function Home() {
     }
   }
 
+  const handleSaveVisionBoard = (boardData: { title: string }) => {
+    if (editingVisionBoard) {
+      setVisionBoards(visionBoards.map(b => b.id === editingVisionBoard.id ? { ...editingVisionBoard, ...boardData } : b));
+    } else {
+      const newBoard: VisionBoard = {
+        id: `vb-${Date.now()}`,
+        ...boardData,
+      };
+      setVisionBoards([newBoard, ...visionBoards]);
+    }
+  };
+
+  const handleSaveVisionBoardItem = (boardId: string, prompt: string, imageUrl: string) => {
+    const newItem: VisionBoardItem = {
+      id: `vbi-${Date.now()}`,
+      visionBoardId: boardId,
+      prompt,
+      imageUrl,
+    };
+    setVisionBoardItems([newItem, ...visionBoardItems]);
+  };
+
   const handleUpdateGoalStatus = (goalId: string, status: GoalStatus) => {
     setLifeGoals(goals => goals.map(g => g.id === goalId ? { ...g, status } : g));
   }
@@ -305,6 +372,16 @@ export default function Home() {
     setAffirmations(affirmations.filter((a) => a.id !== affirmationId));
   };
 
+  const handleDeleteVisionBoard = (boardId: string) => {
+    setVisionBoards(visionBoards.filter((b) => b.id !== boardId));
+    setVisionBoardItems(visionBoardItems.filter(item => item.visionBoardId !== boardId));
+  };
+
+  const handleDeleteVisionBoardItem = (itemId: string) => {
+    setVisionBoardItems(visionBoardItems.filter(item => item.id !== itemId));
+  };
+
+
   const handleToggleComplete = (taskId: string) => {
     setTasks(
       tasks.map((t) =>
@@ -338,7 +415,7 @@ export default function Home() {
   const totalPlans = plans.length;
   const allTodoTasksCount = tasks.filter(t => !t.completed).length;
   const inProgressGoals = lifeGoals.filter(g => g.status === 'In Progress').length;
-  const totalAffirmations = affirmations.length;
+  const totalVisionBoards = visionBoards.length;
 
   return (
     <>
@@ -349,6 +426,10 @@ export default function Home() {
             <h1 className="text-xl font-bold tracking-tight">TaskMaster</h1>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <Button onClick={handleOpenVisionBoardDialogForNew} variant="outline">
+              <GalleryHorizontal />
+              <span>Add Vision Board</span>
+            </Button>
             <Button onClick={handleOpenAffirmationDialogForNew} variant="outline">
               <Sparkles />
               <span>Add Affirmation</span>
@@ -388,14 +469,37 @@ export default function Home() {
                     href="#life-goals-section"
                 />
                 <SummaryCard
-                    title="Daily Affirmations"
-                    value={totalAffirmations}
-                    icon={<Sparkles className="h-4 w-4 text-muted-foreground" />}
-                    href="#affirmations-section"
+                    title="Vision Boards"
+                    value={totalVisionBoards}
+                    icon={<GalleryHorizontal className="h-4 w-4 text-muted-foreground" />}
+                    href="#vision-boards-section"
                 />
             </div>
            <TaskProgress tasks={selectedPlanId ? tasks.filter(t => t.planId === selectedPlanId) : tasks} />
           
+           <div id="vision-boards-section">
+                <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
+                    <GalleryHorizontal className="text-primary" />
+                    <span>Vision Boards</span>
+                </h2>
+                {visionBoards.length > 0 ? (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {visionBoards.map((board) => (
+                            <VisionBoardCard
+                                key={board.id}
+                                board={board}
+                                items={visionBoardItems.filter(item => item.visionBoardId === board.id)}
+                                onSelectBoard={handleOpenVisionBoardSheet}
+                                onEdit={handleOpenVisionBoardDialogForEdit}
+                                onDelete={handleDeleteVisionBoard}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-muted-foreground">No vision boards yet. Create one to visualize your dreams!</p>
+                )}
+            </div>
+           
            <div id="affirmations-section">
                 <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
                     <Sparkles className="text-primary" />
@@ -543,6 +647,23 @@ export default function Home() {
         affirmation={editingAffirmation}
         onSave={handleSaveAffirmation}
       />
+      <AddVisionBoardDialog
+        key={editingVisionBoard?.id ?? "new-vision-board"}
+        open={isAddVisionBoardDialogOpen}
+        onOpenChange={setIsAddVisionBoardDialogOpen}
+        board={editingVisionBoard}
+        onSave={handleSaveVisionBoard}
+      />
+      {activeVisionBoard && (
+        <VisionBoardSheet
+          open={isVisionBoardSheetOpen}
+          onOpenChange={setIsVisionBoardSheetOpen}
+          board={activeVisionBoard}
+          items={visionBoardItems.filter(item => item.visionBoardId === activeVisionBoard.id)}
+          onAddItem={handleSaveVisionBoardItem}
+          onDeleteItem={handleDeleteVisionBoardItem}
+        />
+      )}
     </>
   );
 }
