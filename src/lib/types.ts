@@ -13,6 +13,11 @@ export interface Plan {
   description?: string;
 }
 
+export interface Affirmation {
+  id: string;
+  text: string;
+}
+
 export interface Task {
   id: string;
   planId?: string;

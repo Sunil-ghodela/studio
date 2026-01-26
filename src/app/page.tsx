@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake } from "lucide-react";
-import type { Task, Plan, LifeGoal, Habit, GoalStatus } from "@/lib/types";
+import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake, Sparkles } from "lucide-react";
+import type { Task, Plan, LifeGoal, Habit, GoalStatus, Affirmation } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import TaskCard from "@/components/task-card";
 import { AddTaskDialog } from "@/components/add-task-dialog";
@@ -16,6 +16,8 @@ import { Accordion } from "@/components/ui/accordion";
 import { AddHabitDialog } from "@/components/add-habit-dialog";
 import { getTodayDateString } from "@/lib/date-utils";
 import SummaryCard from "@/components/summary-card";
+import { AddAffirmationDialog } from "@/components/add-affirmation-dialog";
+import AffirmationCard from "@/components/affirmation-card";
 
 const initialPlans: Plan[] = [
     {
@@ -128,21 +130,35 @@ const initialHabits: Habit[] = [
     }
 ]
 
+const initialAffirmations: Affirmation[] = [
+    {
+        id: 'affirm-1',
+        text: 'I am capable of achieving my goals.',
+    },
+    {
+        id: 'affirm-2',
+        text: 'I am confident and embrace new challenges.',
+    },
+];
+
 
 export default function Home() {
   const [plans, setPlans] = useState<Plan[]>(initialPlans);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [lifeGoals, setLifeGoals] = useState<LifeGoal[]>(initialLifeGoals);
   const [habits, setHabits] = useState<Habit[]>(initialHabits);
+  const [affirmations, setAffirmations] = useState<Affirmation[]>(initialAffirmations);
 
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
   const [isAddPlanDialogOpen, setIsAddPlanDialogOpen] = useState(false);
   const [isAddLifeGoalDialogOpen, setIsAddLifeGoalDialogOpen] = useState(false);
   const [isAddHabitDialogOpen, setIsAddHabitDialogOpen] = useState(false);
+  const [isAddAffirmationDialogOpen, setIsAddAffirmationDialogOpen] = useState(false);
   
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [editingLifeGoal, setEditingLifeGoal] = useState<LifeGoal | null>(null);
+  const [editingAffirmation, setEditingAffirmation] = useState<Affirmation | null>(null);
   const [activeGoalIdForHabit, setActiveGoalIdForHabit] = useState<string | null>(null);
   
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
@@ -181,6 +197,16 @@ export default function Home() {
     setActiveGoalIdForHabit(goalId);
     setIsAddHabitDialogOpen(true);
   }
+
+  const handleOpenAffirmationDialogForNew = () => {
+    setEditingAffirmation(null);
+    setIsAddAffirmationDialogOpen(true);
+  };
+
+  const handleOpenAffirmationDialogForEdit = (affirmation: Affirmation) => {
+    setEditingAffirmation(affirmation);
+    setIsAddAffirmationDialogOpen(true);
+  };
 
   const handleSaveTask = (data: { title: string; description?: string; dueDate: Date; priority: "Low" | "Medium" | "High"; files: FileList | null; planId?: string; }) => {
     const taskData = {
@@ -230,6 +256,18 @@ export default function Home() {
     }
   }
 
+  const handleSaveAffirmation = (affirmationData: { text: string }) => {
+    if (editingAffirmation) {
+      setAffirmations(affirmations.map(a => a.id === editingAffirmation.id ? { ...editingAffirmation, ...affirmationData } : a));
+    } else {
+      const newAffirmation: Affirmation = {
+        id: `affirmation-${Date.now()}`,
+        ...affirmationData,
+      };
+      setAffirmations([newAffirmation, ...affirmations]);
+    }
+  }
+
   const handleUpdateGoalStatus = (goalId: string, status: GoalStatus) => {
     setLifeGoals(goals => goals.map(g => g.id === goalId ? { ...g, status } : g));
   }
@@ -262,6 +300,10 @@ export default function Home() {
     setLifeGoals(goals => goals.filter(g => g.id !== goalId));
     setHabits(h => h.filter(habit => habit.goalId !== goalId));
   }
+
+  const handleDeleteAffirmation = (affirmationId: string) => {
+    setAffirmations(affirmations.filter((a) => a.id !== affirmationId));
+  };
 
   const handleToggleComplete = (taskId: string) => {
     setTasks(
@@ -296,6 +338,7 @@ export default function Home() {
   const totalPlans = plans.length;
   const allTodoTasksCount = tasks.filter(t => !t.completed).length;
   const inProgressGoals = lifeGoals.filter(g => g.status === 'In Progress').length;
+  const totalAffirmations = affirmations.length;
 
   return (
     <>
@@ -306,7 +349,11 @@ export default function Home() {
             <h1 className="text-xl font-bold tracking-tight">TaskMaster</h1>
           </div>
           <div className="ml-auto flex items-center gap-2">
-             <Button onClick={handleOpenLifeGoalDialogForNew} variant="outline">
+            <Button onClick={handleOpenAffirmationDialogForNew} variant="outline">
+              <Sparkles />
+              <span>Add Affirmation</span>
+            </Button>
+            <Button onClick={handleOpenLifeGoalDialogForNew} variant="outline">
               <PlusCircle />
               <span>Add Goal</span>
             </Button>
@@ -321,7 +368,7 @@ export default function Home() {
           </div>
         </header>
         <main className="flex-1 space-y-8 p-4 sm:p-6 md:p-8">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <SummaryCard
                     title="Active Plans"
                     value={totalPlans}
@@ -340,9 +387,36 @@ export default function Home() {
                     icon={<HeartHandshake className="h-4 w-4 text-muted-foreground" />}
                     href="#life-goals-section"
                 />
+                <SummaryCard
+                    title="Daily Affirmations"
+                    value={totalAffirmations}
+                    icon={<Sparkles className="h-4 w-4 text-muted-foreground" />}
+                    href="#affirmations-section"
+                />
             </div>
            <TaskProgress tasks={selectedPlanId ? tasks.filter(t => t.planId === selectedPlanId) : tasks} />
           
+           <div id="affirmations-section">
+                <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
+                    <Sparkles className="text-primary" />
+                    <span>Affirmations</span>
+                </h2>
+                {affirmations.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {affirmations.map((affirmation) => (
+                    <AffirmationCard
+                        key={affirmation.id}
+                        affirmation={affirmation}
+                        onEdit={handleOpenAffirmationDialogForEdit}
+                        onDelete={handleDeleteAffirmation}
+                    />
+                    ))}
+                </div>
+                ) : (
+                    <p className="text-muted-foreground">No affirmations yet. Add one to get started!</p>
+                )}
+            </div>
+
            <div id="plans-section">
             <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
               <ClipboardList className="text-primary" />
@@ -461,6 +535,13 @@ export default function Home() {
         open={isAddHabitDialogOpen}
         onOpenChange={setIsAddHabitDialogOpen}
         onSave={handleSaveHabit}
+      />
+      <AddAffirmationDialog
+        key={editingAffirmation?.id ?? "new-affirmation"}
+        open={isAddAffirmationDialogOpen}
+        onOpenChange={setIsAddAffirmationDialogOpen}
+        affirmation={editingAffirmation}
+        onSave={handleSaveAffirmation}
       />
     </>
   );
