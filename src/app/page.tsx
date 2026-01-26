@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { PlusCircle, ListTodo, CheckCircle2, ClipboardList } from "lucide-react";
-import type { Task, Plan } from "@/lib/types";
+import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake } from "lucide-react";
+import type { Task, Plan, LifeGoal, Habit } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import TaskCard from "@/components/task-card";
 import { AddTaskDialog } from "@/components/add-task-dialog";
@@ -10,6 +10,11 @@ import TaskProgress from "@/components/task-progress";
 import Logo from "@/components/logo";
 import { AddPlanDialog } from "@/components/add-plan-dialog";
 import PlanCard from "@/components/plan-card";
+import { AddLifeGoalDialog } from "@/components/add-life-goal-dialog";
+import LifeGoalCard from "@/components/life-goal-card";
+import { Accordion } from "@/components/ui/accordion";
+import { AddHabitDialog } from "@/components/add-habit-dialog";
+import { getTodayDateString } from "@/lib/date-utils";
 
 const initialPlans: Plan[] = [
     {
@@ -70,13 +75,53 @@ const initialTasks: Task[] = [
     },
 ];
 
+const initialLifeGoals: LifeGoal[] = [
+    {
+        id: 'goal-1',
+        title: 'Learn to play the guitar',
+        description: 'Practice every day to be able to play my favorite songs.',
+        category: 'Personal',
+    },
+    {
+        id: 'goal-2',
+        title: 'Run a 5k',
+        description: 'Train consistently to improve my running endurance and speed.',
+        category: 'Health',
+    }
+]
+
+const initialHabits: Habit[] = [
+    {
+        id: 'habit-1',
+        goalId: 'goal-1',
+        name: 'Practice chords for 15 minutes',
+        completions: [],
+    },
+    {
+        id: 'habit-2',
+        goalId: 'goal-2',
+        name: 'Go for a 30-minute run',
+        completions: [getTodayDateString()],
+    }
+]
+
+
 export default function Home() {
   const [plans, setPlans] = useState<Plan[]>(initialPlans);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [lifeGoals, setLifeGoals] = useState<LifeGoal[]>(initialLifeGoals);
+  const [habits, setHabits] = useState<Habit[]>(initialHabits);
+
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
   const [isAddPlanDialogOpen, setIsAddPlanDialogOpen] = useState(false);
+  const [isAddLifeGoalDialogOpen, setIsAddLifeGoalDialogOpen] = useState(false);
+  const [isAddHabitDialogOpen, setIsAddHabitDialogOpen] = useState(false);
+  
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [editingLifeGoal, setEditingLifeGoal] = useState<LifeGoal | null>(null);
+  const [activeGoalIdForHabit, setActiveGoalIdForHabit] = useState<string | null>(null);
+  
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
   const handleOpenAddTaskDialogForNew = () => {
@@ -98,6 +143,21 @@ export default function Home() {
     setEditingPlan(plan);
     setIsAddPlanDialogOpen(true);
   };
+
+  const handleOpenLifeGoalDialogForNew = () => {
+    setEditingLifeGoal(null);
+    setIsAddLifeGoalDialogOpen(true);
+  }
+
+  const handleOpenLifeGoalDialogForEdit = (goal: LifeGoal) => {
+    setEditingLifeGoal(goal);
+    setIsAddLifeGoalDialogOpen(true);
+  }
+
+  const handleOpenAddHabitDialog = (goalId: string) => {
+    setActiveGoalIdForHabit(goalId);
+    setIsAddHabitDialogOpen(true);
+  }
 
   const handleSaveTask = (data: { title: string; description?: string; dueDate: Date; priority: "Low" | "Medium" | "High"; files: FileList | null; planId?: string; }) => {
     const taskData = {
@@ -134,6 +194,30 @@ export default function Home() {
     }
   }
 
+   const handleSaveLifeGoal = (goalData: Omit<LifeGoal, 'id' | 'habits'>) => {
+    if (editingLifeGoal) {
+        setLifeGoals(goals => goals.map(g => g.id === editingLifeGoal.id ? {...editingLifeGoal, ...goalData} : g));
+    } else {
+        const newGoal: LifeGoal = {
+            id: `goal-${Date.now()}`,
+            ...goalData
+        };
+        setLifeGoals(goals => [newGoal, ...goals]);
+    }
+  }
+
+  const handleSaveHabit = (habitData: { name: string }) => {
+    if (!activeGoalIdForHabit) return;
+    const newHabit: Habit = {
+        id: `habit-${Date.now()}`,
+        goalId: activeGoalIdForHabit,
+        name: habitData.name,
+        completions: [],
+    };
+    setHabits(h => [newHabit, ...h]);
+    setActiveGoalIdForHabit(null);
+  }
+
   const handleDeleteTask = (taskId: string) => {
     setTasks(tasks.filter((t) => t.id !== taskId));
   };
@@ -146,6 +230,11 @@ export default function Home() {
     }
   };
 
+  const handleDeleteLifeGoal = (goalId: string) => {
+    setLifeGoals(goals => goals.filter(g => g.id !== goalId));
+    setHabits(h => h.filter(habit => habit.goalId !== goalId));
+  }
+
   const handleToggleComplete = (taskId: string) => {
     setTasks(
       tasks.map((t) =>
@@ -153,6 +242,19 @@ export default function Home() {
       )
     );
   };
+  
+  const handleToggleHabitComplete = (habitId: string) => {
+    const today = getTodayDateString();
+    setHabits(habits => habits.map(habit => {
+        if (habit.id === habitId) {
+            const newCompletions = habit.completions.includes(today)
+                ? habit.completions.filter(c => c !== today)
+                : [...habit.completions, today];
+            return { ...habit, completions: newCompletions };
+        }
+        return habit;
+    }))
+  }
 
   const { todoTasks, completedTasks } = useMemo(() => {
     const filteredTasks = selectedPlanId ? tasks.filter(t => t.planId === selectedPlanId) : tasks.filter(t => !t.planId);
@@ -172,6 +274,10 @@ export default function Home() {
             <h1 className="text-xl font-bold tracking-tight">TaskMaster</h1>
           </div>
           <div className="ml-auto flex items-center gap-2">
+             <Button onClick={handleOpenLifeGoalDialogForNew} variant="outline">
+              <PlusCircle />
+              <span>Add Goal</span>
+            </Button>
             <Button onClick={handleOpenPlanDialogForNew} variant="outline">
               <PlusCircle />
               <span>Add Plan</span>
@@ -207,6 +313,30 @@ export default function Home() {
             ) : (
                 <p className="text-muted-foreground">No plans yet. Create one to get started!</p>
             )}
+          </div>
+          
+          <div>
+            <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
+                <HeartHandshake className="text-primary" />
+                <span>Life Goals</span>
+            </h2>
+             {lifeGoals.length > 0 ? (
+                <Accordion type="multiple" className="w-full space-y-0">
+                    {lifeGoals.map(goal => (
+                        <LifeGoalCard
+                            key={goal.id}
+                            goal={goal}
+                            habits={habits}
+                            onEditGoal={handleOpenLifeGoalDialogForEdit}
+                            onDeleteGoal={handleDeleteLifeGoal}
+                            onAddHabit={handleOpenAddHabitDialog}
+                            onToggleHabitComplete={handleToggleHabitComplete}
+                        />
+                    ))}
+                </Accordion>
+             ) : (
+                <p className="text-muted-foreground">No life goals yet. Add one to start your journey!</p>
+             )}
           </div>
 
           <div>
@@ -266,6 +396,18 @@ export default function Home() {
         onOpenChange={setIsAddPlanDialogOpen}
         plan={editingPlan}
         onSave={handleSavePlan}
+      />
+      <AddLifeGoalDialog 
+        key={editingLifeGoal?.id ?? "new-goal"}
+        open={isAddLifeGoalDialogOpen}
+        onOpenChange={setIsAddLifeGoalDialogOpen}
+        goal={editingLifeGoal}
+        onSave={handleSaveLifeGoal}
+      />
+      <AddHabitDialog
+        open={isAddHabitDialogOpen}
+        onOpenChange={setIsAddHabitDialogOpen}
+        onSave={handleSaveHabit}
       />
     </>
   );
