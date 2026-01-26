@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { Habit } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { getTodayDateString } from "@/lib/date-utils";
+import { getTodayDateString, calculateStreak } from "@/lib/date-utils";
 
 interface HabitCardProps {
     habit: Habit;
@@ -16,8 +16,7 @@ export default function HabitCard({ habit, onToggleComplete }: HabitCardProps) {
     const today = getTodayDateString();
     const isCompletedToday = habit.completions.includes(today);
 
-    // Basic streak calculation
-    const streak = habit.completions.length; 
+    const streak = calculateStreak(habit.completions);
     
     return (
         <Card className="flex flex-row items-center justify-between p-3">

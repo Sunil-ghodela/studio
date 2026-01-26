@@ -25,6 +25,7 @@ export interface Task {
 }
 
 export type GoalCategory = "Personal" | "Health" | "Career" | "Marriage" | "Children";
+export type GoalStatus = "In Progress" | "Achieved" | "On Hold";
 
 export interface Habit {
     id: string;
@@ -38,4 +39,6 @@ export interface LifeGoal {
     title: string;
     description?: string;
     category: GoalCategory;
+    status: GoalStatus;
+    targetDate?: Date;
 }

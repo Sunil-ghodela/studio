@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake } from "lucide-react";
-import type { Task, Plan, LifeGoal, Habit } from "@/lib/types";
+import type { Task, Plan, LifeGoal, Habit, GoalStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import TaskCard from "@/components/task-card";
 import { AddTaskDialog } from "@/components/add-task-dialog";
@@ -81,12 +81,24 @@ const initialLifeGoals: LifeGoal[] = [
         title: 'Learn to play the guitar',
         description: 'Practice every day to be able to play my favorite songs.',
         category: 'Personal',
+        status: 'In Progress',
+        targetDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
     },
     {
         id: 'goal-2',
         title: 'Run a 5k',
         description: 'Train consistently to improve my running endurance and speed.',
         category: 'Health',
+        status: 'In Progress',
+        targetDate: new Date(new Date().setMonth(new Date().getMonth() + 3)),
+    },
+     {
+        id: 'goal-3',
+        title: 'Read 12 books',
+        description: 'Finish one book every month.',
+        category: 'Personal',
+        status: 'Achieved',
+        targetDate: new Date(new Date().setFullYear(new Date().getFullYear(), 11, 31)),
     }
 ]
 
@@ -95,13 +107,19 @@ const initialHabits: Habit[] = [
         id: 'habit-1',
         goalId: 'goal-1',
         name: 'Practice chords for 15 minutes',
-        completions: [],
+        completions: [getTodayDateString()],
     },
     {
         id: 'habit-2',
         goalId: 'goal-2',
         name: 'Go for a 30-minute run',
         completions: [getTodayDateString()],
+    },
+    {
+        id: 'habit-3',
+        goalId: 'goal-1',
+        name: 'Learn a new song',
+        completions: [],
     }
 ]
 
@@ -194,7 +212,7 @@ export default function Home() {
     }
   }
 
-   const handleSaveLifeGoal = (goalData: Omit<LifeGoal, 'id' | 'habits'>) => {
+   const handleSaveLifeGoal = (goalData: Omit<LifeGoal, 'id'>) => {
     if (editingLifeGoal) {
         setLifeGoals(goals => goals.map(g => g.id === editingLifeGoal.id ? {...editingLifeGoal, ...goalData} : g));
     } else {
@@ -204,6 +222,10 @@ export default function Home() {
         };
         setLifeGoals(goals => [newGoal, ...goals]);
     }
+  }
+
+  const handleUpdateGoalStatus = (goalId: string, status: GoalStatus) => {
+    setLifeGoals(goals => goals.map(g => g.id === goalId ? { ...g, status } : g));
   }
 
   const handleSaveHabit = (habitData: { name: string }) => {
@@ -331,6 +353,7 @@ export default function Home() {
                             onDeleteGoal={handleDeleteLifeGoal}
                             onAddHabit={handleOpenAddHabitDialog}
                             onToggleHabitComplete={handleToggleHabitComplete}
+                            onUpdateGoalStatus={handleUpdateGoalStatus}
                         />
                     ))}
                 </Accordion>
