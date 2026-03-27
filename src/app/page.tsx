@@ -1,771 +1,223 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { PlusCircle, ListTodo, CheckCircle2, ClipboardList, HeartHandshake, Sparkles, GalleryHorizontal, Map, Trophy, Flag, ImagePlus } from "lucide-react";
-import type { Task, Plan, LifeGoal, Habit, GoalStatus, Affirmation, VisionBoard, VisionBoardItem, TimelineEvent } from "@/lib/types";
-import { Button } from "@/components/ui/button";
-import TaskCard from "@/components/task-card";
-import { AddTaskDialog } from "@/components/add-task-dialog";
-import TaskProgress from "@/components/task-progress";
-import Logo from "@/components/logo";
-import { AddPlanDialog } from "@/components/add-plan-dialog";
-import PlanCard from "@/components/plan-card";
-import { AddLifeGoalDialog } from "@/components/add-life-goal-dialog";
-import LifeGoalCard from "@/components/life-goal-card";
-import { Accordion } from "@/components/ui/accordion";
-import { AddHabitDialog } from "@/components/add-habit-dialog";
-import { getTodayDateString } from "@/lib/date-utils";
-import SummaryCard from "@/components/summary-card";
-import { AddAffirmationDialog } from "@/components/add-affirmation-dialog";
-import AffirmationCard from "@/components/affirmation-card";
-import { AddVisionBoardDialog } from "@/components/add-vision-board-dialog";
-import VisionBoardCard from "@/components/vision-board-card";
-import VisionBoardSheet from "@/components/vision-board-sheet";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { ActivityOverviewSheet } from "@/components/activity-overview-sheet";
-import JourneyTimeline from "@/components/journey-timeline";
-import { Card, CardContent } from "@/components/ui/card";
+import { useMemo, useState } from "react";
+import {
+  Bell,
+  ChevronRight,
+  Droplets,
+  Flame,
+  Leaf,
+  Moon,
+  Search,
+  Sparkles,
+  Sun,
+  Utensils,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
+type ScreenKey = "home" | "explore" | "journey";
 
-const initialPlans: Plan[] = [
-    {
-        id: 'plan-1',
-        title: 'Q3 Marketing Campaign',
-        description: 'All tasks related to the Q3 marketing campaign.',
-    },
-    {
-        id: 'plan-2',
-        title: 'Website Redesign',
-        description: 'Tasks for the upcoming website redesign project.',
-    },
+const tabs: { key: ScreenKey; label: string }[] = [
+  { key: "home", label: "Screen 1 · Home" },
+  { key: "explore", label: "Screen 2 · Explore" },
+  { key: "journey", label: "Screen 3 · Journey" },
 ];
 
-const initialTasks: Task[] = [
-  {
-    id: "task-1",
-    planId: "plan-1",
-    title: "Finalize Q3 marketing report",
-    description: "Review the latest analytics and compile the final report for the Q3 marketing campaign. Circulate to the team for feedback before the EOD.",
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 1)),
-    priority: "High",
-    completed: false,
-    files: [],
-    completedAt: null,
-  },
-  {
-    id: "task-2",
-    title: "Team lunch coordination",
-    description: "Organize a team lunch for next Friday. Poll the team for preferences and make a reservation.",
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 5)),
-    priority: "Low",
-    completed: false,
-    files: [],
-    completedAt: null,
-  },
-  {
-    id: "task-3",
-    planId: "plan-2",
-    title: "Update project documentation",
-    description: "Add new API endpoints to the project documentation and update the setup guide.",
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 3)),
-    priority: "Medium",
-    completed: true,
-    files: [
-      { id: "file-1", name: "Project-Plan.pdf", url: "#", type: "document" }
-    ],
-    completedAt: new Date(new Date().setDate(new Date().getDate() - 1)),
-  },
-    {
-    id: "task-4",
-    planId: "plan-1",
-    title: "Review video drafts",
-    description: "Go through the video drafts for the new ad campaign and provide feedback to the creative team.",
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 2)),
-    priority: "High",
-    completed: false,
-    files: [
-        { id: "file-2", name: "ad_campaign_v1.mp4", url: "#", type: "video" }
-    ],
-    completedAt: null,
-    },
+const quickCards = [
+  { title: "Cooling Foods", value: "20%", icon: Flame, color: "from-emerald-300 to-green-500" },
+  { title: "Hydrating Drinks", value: "20%", icon: Droplets, color: "from-cyan-300 to-sky-500" },
+  { title: "Light Dinner", value: "See all", icon: Leaf, color: "from-lime-300 to-emerald-500" },
 ];
 
-const initialLifeGoals: LifeGoal[] = [
-    {
-        id: `goal-${new Date(new Date().setFullYear(new Date().getFullYear() - 1)).getTime()}`,
-        title: 'Learn to play the guitar',
-        description: 'Practice every day to be able to play my favorite songs.',
-        category: 'Personal',
-        status: 'In Progress',
-        targetDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-    },
-    {
-        id: `goal-${new Date(new Date().setMonth(new Date().getMonth() - 6)).getTime()}`,
-        title: 'Run a 5k',
-        description: 'Train consistently to improve my running endurance and speed.',
-        category: 'Health',
-        status: 'In Progress',
-        targetDate: new Date(new Date().setMonth(new Date().getMonth() + 3)),
-    },
-     {
-        id: `goal-${new Date(new Date().setFullYear(new Date().getFullYear() - 2)).getTime()}`,
-        title: 'Read 12 books',
-        description: 'Finish one book every month.',
-        category: 'Personal',
-        status: 'Achieved',
-        targetDate: new Date(new Date().setFullYear(new Date().getFullYear() -1, 11, 31)),
-    }
-]
-
-const initialHabits: Habit[] = [
-    {
-        id: 'habit-1',
-        goalId: initialLifeGoals[0].id,
-        name: 'Practice chords for 15 minutes',
-        completions: [getTodayDateString()],
-    },
-    {
-        id: 'habit-2',
-        goalId: initialLifeGoals[1].id,
-        name: 'Go for a 30-minute run',
-        completions: [getTodayDateString()],
-    },
-    {
-        id: 'habit-3',
-        goalId: initialLifeGoals[0].id,
-        name: 'Learn a new song',
-        completions: [],
-    }
-]
-
-const initialAffirmations: Affirmation[] = [
-    {
-        id: 'affirm-1',
-        text: 'I am capable of achieving my goals.',
-    },
-    {
-        id: 'affirm-2',
-        text: 'I am confident and embrace new challenges.',
-    },
+const categoryCards = [
+  "Cooling Foods",
+  "Energy Boost",
+  "Morning Picks",
+  "Digestion Aid",
+  "Healthy Skin",
+  "Weight Loss",
+  "Proteins",
+  "Immunity",
+  "Superfoods",
 ];
-
-const initialVisionBoards: VisionBoard[] = [
-    {
-        id: 'vb-1',
-        title: 'My Dream Vacation',
-    },
-    {
-        id: 'vb-2',
-        title: 'Career Aspirations',
-    },
-];
-
-const initialVisionBoardItems: VisionBoardItem[] = [
-    {
-        id: `vbi-${new Date(new Date().setDate(new Date().getDate() - 10)).getTime()}`,
-        visionBoardId: 'vb-1',
-        prompt: 'A beautiful beach in the Maldives',
-        imageUrl: 'https://images.unsplash.com/photo-1512100356356-de1b84283e18?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxiZWFjaCUyMHZhY2F0aW9ufGVufDB8fHx8MTc3MDA2Nzc3OXww&ixlib=rb-4.1.0&q=80&w=1080',
-    },
-];
-
 
 export default function Home() {
-  const [plans, setPlans] = useState<Plan[]>(initialPlans);
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [lifeGoals, setLifeGoals] = useState<LifeGoal[]>(initialLifeGoals);
-  const [habits, setHabits] = useState<Habit[]>(initialHabits);
-  const [affirmations, setAffirmations] = useState<Affirmation[]>(initialAffirmations);
-  const [visionBoards, setVisionBoards] = useState<VisionBoard[]>(initialVisionBoards);
-  const [visionBoardItems, setVisionBoardItems] = useState<VisionBoardItem[]>(initialVisionBoardItems);
+  const [activeScreen, setActiveScreen] = useState<ScreenKey>("home");
 
-  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
-  const [isAddPlanDialogOpen, setIsAddPlanDialogOpen] = useState(false);
-  const [isAddLifeGoalDialogOpen, setIsAddLifeGoalDialogOpen] = useState(false);
-  const [isAddHabitDialogOpen, setIsAddHabitDialogOpen] = useState(false);
-  const [isAddAffirmationDialogOpen, setIsAddAffirmationDialogOpen] = useState(false);
-  const [isAddVisionBoardDialogOpen, setIsAddVisionBoardDialogOpen] = useState(false);
-  const [isVisionBoardSheetOpen, setIsVisionBoardSheetOpen] = useState(false);
-  const [isActivityOverviewOpen, setIsActivityOverviewOpen] = useState(false);
-  
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
-  const [editingLifeGoal, setEditingLifeGoal] = useState<LifeGoal | null>(null);
-  const [editingAffirmation, setEditingAffirmation] = useState<Affirmation | null>(null);
-  const [editingVisionBoard, setEditingVisionBoard] = useState<VisionBoard | null>(null);
-  const [activeGoalIdForHabit, setActiveGoalIdForHabit] = useState<string | null>(null);
-  const [activeVisionBoard, setActiveVisionBoard] = useState<VisionBoard | null>(null);
-  
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-
-  const timelineEvents = useMemo((): TimelineEvent[] => {
-    const events: TimelineEvent[] = [];
-
-    tasks.forEach(task => {
-        if (task.completed && task.completedAt) {
-            events.push({
-                id: `task-${task.id}`,
-                date: task.completedAt,
-                type: 'task-completed',
-                title: 'Task Completed',
-                description: task.title,
-                icon: <CheckCircle2 className="h-4 w-4" />,
-            });
-        }
-    });
-
-    lifeGoals.forEach(goal => {
-        if (goal.status === 'Achieved') {
-            events.push({
-                id: `goal-achieved-${goal.id}`,
-                date: goal.targetDate || new Date(), // Fallback
-                type: 'goal-achieved',
-                title: 'Goal Achieved',
-                description: goal.title,
-                icon: <Trophy className="h-4 w-4" />,
-            });
-        } else {
-             const timestamp = parseInt(goal.id.split('-')[1], 10);
-             if (!isNaN(timestamp)) {
-                events.push({
-                    id: `goal-created-${goal.id}`,
-                    date: new Date(timestamp),
-                    type: 'goal-created',
-                    title: 'Goal Started',
-                    description: goal.title,
-                    icon: <Flag className="h-4 w-4" />,
-                });
-             }
-        }
-    });
-
-    visionBoardItems.forEach(item => {
-        const timestamp = parseInt(item.id.split('-')[1], 10);
-        if (!isNaN(timestamp)) {
-            events.push({
-                id: `vbi-${item.id}`,
-                date: new Date(timestamp),
-                type: 'vision-item-added',
-                title: 'Vision Added',
-                description: item.prompt,
-                icon: <ImagePlus className="h-4 w-4" />,
-            });
-        }
-    });
-
-    return events.sort((a, b) => b.date.getTime() - a.date.getTime());
-}, [tasks, lifeGoals, visionBoardItems]);
-
-  const handleOpenAddTaskDialogForNew = () => {
-    setEditingTask(null);
-    setIsAddTaskDialogOpen(true);
-  };
-
-  const handleOpenAddTaskDialogForEdit = (task: Task) => {
-    setEditingTask(task);
-    setIsAddTaskDialogOpen(true);
-  };
-
-  const handleOpenPlanDialogForNew = () => {
-    setEditingPlan(null);
-    setIsAddPlanDialogOpen(true);
-  };
-
-  const handleOpenPlanDialogForEdit = (plan: Plan) => {
-    setEditingPlan(plan);
-    setIsAddPlanDialogOpen(true);
-  };
-
-  const handleOpenLifeGoalDialogForNew = () => {
-    setEditingLifeGoal(null);
-    setIsAddLifeGoalDialogOpen(true);
-  }
-
-  const handleOpenLifeGoalDialogForEdit = (goal: LifeGoal) => {
-    setEditingLifeGoal(goal);
-    setIsAddLifeGoalDialogOpen(true);
-  }
-
-  const handleOpenAddHabitDialog = (goalId: string) => {
-    setActiveGoalIdForHabit(goalId);
-    setIsAddHabitDialogOpen(true);
-  }
-
-  const handleOpenAffirmationDialogForNew = () => {
-    setEditingAffirmation(null);
-    setIsAddAffirmationDialogOpen(true);
-  };
-
-  const handleOpenAffirmationDialogForEdit = (affirmation: Affirmation) => {
-    setEditingAffirmation(affirmation);
-    setIsAddAffirmationDialogOpen(true);
-  };
-
-  const handleOpenVisionBoardDialogForNew = () => {
-    setEditingVisionBoard(null);
-    setIsAddVisionBoardDialogOpen(true);
-  };
-
-  const handleOpenVisionBoardDialogForEdit = (board: VisionBoard) => {
-    setEditingVisionBoard(board);
-    setIsAddVisionBoardDialogOpen(true);
-  };
-
-  const handleOpenVisionBoardSheet = (board: VisionBoard) => {
-    setActiveVisionBoard(board);
-    setIsVisionBoardSheetOpen(true);
-  };
-
-  const handleSaveTask = (data: { title: string; description?: string; dueDate: Date; priority: "Low" | "Medium" | "High"; files: FileList | null; planId?: string; }) => {
-    const taskData = {
-        ...data,
-        planId: data.planId === '' ? undefined : data.planId,
-    };
-
-    if (editingTask) {
-      setTasks(tasks.map((t) => (t.id === editingTask.id ? { ...editingTask, ...taskData, files: t.files } : t)));
-    } else {
-      const newTask: Task = {
-        id: `task-${Date.now()}`,
-        title: taskData.title,
-        description: taskData.description,
-        dueDate: taskData.dueDate,
-        priority: taskData.priority,
-        planId: taskData.planId,
-        completed: false,
-        completedAt: null,
-        files: data.files && data.files.length > 0 ? Array.from(data.files).map(f => ({ id: `file-${Date.now()}`, name: f.name, url: '#', type: f.type.startsWith('video') ? 'video' : 'document' })) : []
-      };
-      setTasks([newTask, ...tasks]);
-    }
-  };
-
-  const handleSavePlan = (planData: Omit<Plan, 'id'>) => {
-    if (editingPlan) {
-      setPlans(plans.map(p => p.id === editingPlan.id ? { ...editingPlan, ...planData } : p));
-    } else {
-      const newPlan: Plan = {
-        id: `plan-${Date.now()}`,
-        ...planData,
-      };
-      setPlans([newPlan, ...plans]);
-    }
-  }
-
-   const handleSaveLifeGoal = (goalData: Omit<LifeGoal, 'id'>) => {
-    if (editingLifeGoal) {
-        setLifeGoals(goals => goals.map(g => g.id === editingLifeGoal.id ? {...editingLifeGoal, ...goalData} : g));
-    } else {
-        const newGoal: LifeGoal = {
-            id: `goal-${Date.now()}`,
-            ...goalData
-        };
-        setLifeGoals(goals => [newGoal, ...goals]);
-    }
-  }
-
-  const handleSaveAffirmation = (affirmationData: { text: string }) => {
-    if (editingAffirmation) {
-      setAffirmations(affirmations.map(a => a.id === editingAffirmation.id ? { ...editingAffirmation, ...affirmationData } : a));
-    } else {
-      const newAffirmation: Affirmation = {
-        id: `affirmation-${Date.now()}`,
-        ...affirmationData,
-      };
-      setAffirmations([newAffirmation, ...affirmations]);
-    }
-  }
-
-  const handleSaveVisionBoard = (boardData: { title: string }) => {
-    if (editingVisionBoard) {
-      setVisionBoards(visionBoards.map(b => b.id === editingVisionBoard.id ? { ...editingVisionBoard, ...boardData } : b));
-    } else {
-      const newBoard: VisionBoard = {
-        id: `vb-${Date.now()}`,
-        ...boardData,
-      };
-      setVisionBoards([newBoard, ...visionBoards]);
-    }
-  };
-
-  const handleSaveVisionBoardItem = (boardId: string, prompt: string, imageUrl: string) => {
-    const newItem: VisionBoardItem = {
-      id: `vbi-${Date.now()}`,
-      visionBoardId: boardId,
-      prompt,
-      imageUrl,
-    };
-    setVisionBoardItems([newItem, ...visionBoardItems]);
-  };
-
-  const handleUpdateGoalStatus = (goalId: string, status: GoalStatus) => {
-    setLifeGoals(goals => goals.map(g => g.id === goalId ? { ...g, status } : g));
-  }
-
-  const handleSaveHabit = (habitData: { name: string }) => {
-    if (!activeGoalIdForHabit) return;
-    const newHabit: Habit = {
-        id: `habit-${Date.now()}`,
-        goalId: activeGoalIdForHabit,
-        name: habitData.name,
-        completions: [],
-    };
-    setHabits(h => [newHabit, ...h]);
-    setActiveGoalIdForHabit(null);
-  }
-
-  const handleDeleteTask = (taskId: string) => {
-    setTasks(tasks.filter((t) => t.id !== taskId));
-  };
-
-  const handleDeletePlan = (planId: string) => {
-    setPlans(plans.filter((p) => p.id !== planId));
-    setTasks(tasks.map((t) => t.planId === planId ? {...t, planId: undefined} : t));
-    if (selectedPlanId === planId) {
-        setSelectedPlanId(null);
-    }
-  };
-
-  const handleDeleteLifeGoal = (goalId: string) => {
-    setLifeGoals(goals => goals.filter(g => g.id !== goalId));
-    setHabits(h => h.filter(habit => habit.goalId !== goalId));
-  }
-
-  const handleDeleteAffirmation = (affirmationId: string) => {
-    setAffirmations(affirmations.filter((a) => a.id !== affirmationId));
-  };
-
-  const handleDeleteVisionBoard = (boardId: string) => {
-    setVisionBoards(visionBoards.filter((b) => b.id !== boardId));
-    setVisionBoardItems(visionBoardItems.filter(item => item.visionBoardId !== boardId));
-  };
-
-  const handleDeleteVisionBoardItem = (itemId: string) => {
-    setVisionBoardItems(visionBoardItems.filter(item => item.id !== itemId));
-  };
-
-
-  const handleToggleComplete = (taskId: string) => {
-    setTasks(
-      tasks.map((t) =>
-        t.id === taskId ? { ...t, completed: !t.completed, completedAt: !t.completed ? new Date() : null } : t
-      )
-    );
-  };
-  
-  const handleToggleHabitComplete = (habitId: string) => {
-    const today = getTodayDateString();
-    setHabits(habits => habits.map(habit => {
-        if (habit.id === habitId) {
-            const newCompletions = habit.completions.includes(today)
-                ? habit.completions.filter(c => c !== today)
-                : [...habit.completions, today];
-            return { ...habit, completions: newCompletions };
-        }
-        return habit;
-    }))
-  }
-
-  const { todoTasks, completedTasks } = useMemo(() => {
-    const filteredTasks = selectedPlanId ? tasks.filter(t => t.planId === selectedPlanId) : tasks.filter(t => !t.planId);
-    const sortedTasks = [...filteredTasks].sort((a, b) => b.dueDate.getTime() - a.dueDate.getTime());
-    return {
-      todoTasks: sortedTasks.filter((t) => !t.completed),
-      completedTasks: sortedTasks.filter((t) => t.completed),
-    };
-  }, [tasks, selectedPlanId]);
-
-  const totalPlans = plans.length;
-  const allTodoTasksCount = tasks.filter(t => !t.completed).length;
-  const inProgressGoals = lifeGoals.filter(g => g.status === 'In Progress').length;
-  const totalVisionBoards = visionBoards.length;
+  const title = useMemo(() => {
+    if (activeScreen === "home") return "Heat Wellness App · Home";
+    if (activeScreen === "explore") return "Heat Wellness App · Explore";
+    return "Heat Wellness App · Daily Journey";
+  }, [activeScreen]);
 
   return (
-    <>
-      <SidebarProvider>
-        <Sidebar>
-          <SidebarHeader className="items-center border-b">
-              <Logo />
-              <h1 className="text-xl font-bold tracking-tight group-data-[collapsible=icon]:hidden">TaskMaster</h1>
-          </SidebarHeader>
-          <SidebarContent>
-              <SidebarMenu>
-                  <SidebarMenuItem>
-                      <SidebarMenuButton onClick={() => setIsActivityOverviewOpen(true)} tooltip={{children: "Activity Overview"}}>
-                          <Map className="h-5 w-5" />
-                          <span className="group-data-[collapsible=icon]:hidden">Activity Overview</span>
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-              </SidebarMenu>
-          </SidebarContent>
-        </Sidebar>
-        <SidebarInset>
-          <div className="flex min-h-screen w-full flex-col">
-            <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
-              <SidebarTrigger className="md:hidden" />
-              <div className="ml-auto flex items-center gap-2">
-                <Button onClick={handleOpenVisionBoardDialogForNew} variant="outline">
-                  <GalleryHorizontal />
-                  <span>Add Vision Board</span>
-                </Button>
-                <Button onClick={handleOpenAffirmationDialogForNew} variant="outline">
-                  <Sparkles />
-                  <span>Add Affirmation</span>
-                </Button>
-                <Button onClick={handleOpenLifeGoalDialogForNew} variant="outline">
-                  <PlusCircle />
-                  <span>Add Goal</span>
-                </Button>
-                <Button onClick={handleOpenPlanDialogForNew} variant="outline">
-                  <PlusCircle />
-                  <span>Add Plan</span>
-                </Button>
-                <Button onClick={handleOpenAddTaskDialogForNew}>
-                  <PlusCircle />
-                  <span>Add Task</span>
-                </Button>
-              </div>
-            </header>
-            <main className="flex-1 space-y-8 p-4 sm:p-6 md:p-8">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <SummaryCard
-                        title="Active Plans"
-                        value={totalPlans}
-                        icon={<ClipboardList className="h-4 w-4 text-muted-foreground" />}
-                        href="#plans-section"
-                    />
-                    <SummaryCard
-                        title="Pending Tasks"
-                        value={allTodoTasksCount}
-                        icon={<ListTodo className="h-4 w-4 text-muted-foreground" />}
-                        href="#todo-section"
-                    />
-                    <SummaryCard
-                        title="In-Progress Goals"
-                        value={inProgressGoals}
-                        icon={<HeartHandshake className="h-4 w-4 text-muted-foreground" />}
-                        href="#life-goals-section"
-                    />
-                    <SummaryCard
-                        title="Vision Boards"
-                        value={totalVisionBoards}
-                        icon={<GalleryHorizontal className="h-4 w-4 text-muted-foreground" />}
-                        href="#vision-boards-section"
-                    />
-                </div>
-
-                <div id="journey-section">
-                    <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
-                        <Flag className="text-primary" />
-                        <span>Your Journey</span>
-                    </h2>
-                    <Card>
-                        <CardContent className="p-6">
-                            <JourneyTimeline events={timelineEvents} />
-                        </CardContent>
-                    </Card>
-                </div>
-
-              <TaskProgress tasks={selectedPlanId ? tasks.filter(t => t.planId === selectedPlanId) : tasks} />
-              
-              <div id="vision-boards-section">
-                    <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
-                        <GalleryHorizontal className="text-primary" />
-                        <span>Vision Boards</span>
-                    </h2>
-                    {visionBoards.length > 0 ? (
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {visionBoards.map((board) => (
-                                <VisionBoardCard
-                                    key={board.id}
-                                    board={board}
-                                    items={visionBoardItems.filter(item => item.visionBoardId === board.id)}
-                                    onSelectBoard={handleOpenVisionBoardSheet}
-                                    onEdit={handleOpenVisionBoardDialogForEdit}
-                                    onDelete={handleDeleteVisionBoard}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-muted-foreground">No vision boards yet. Create one to visualize your dreams!</p>
-                    )}
-                </div>
-              
-              <div id="affirmations-section">
-                    <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
-                        <Sparkles className="text-primary" />
-                        <span>Affirmations</span>
-                    </h2>
-                    {affirmations.length > 0 ? (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {affirmations.map((affirmation) => (
-                        <AffirmationCard
-                            key={affirmation.id}
-                            affirmation={affirmation}
-                            onEdit={handleOpenAffirmationDialogForEdit}
-                            onDelete={handleDeleteAffirmation}
-                        />
-                        ))}
-                    </div>
-                    ) : (
-                        <p className="text-muted-foreground">No affirmations yet. Add one to get started!</p>
-                    )}
-                </div>
-
-              <div id="plans-section">
-                <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
-                  <ClipboardList className="text-primary" />
-                  <span>Plans</span>
-                </h2>
-                {plans.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {plans.map((plan) => (
-                      <PlanCard
-                        key={plan.id}
-                        plan={plan}
-                        tasks={tasks}
-                        onSelectPlan={setSelectedPlanId}
-                        onEdit={handleOpenPlanDialogForEdit}
-                        onDelete={handleDeletePlan}
-                        isSelected={selectedPlanId === plan.id}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                    <p className="text-muted-foreground">No plans yet. Create one to get started!</p>
-                )}
-              </div>
-              
-              <div id="life-goals-section">
-                <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
-                    <HeartHandshake className="text-primary" />
-                    <span>Life Goals</span>
-                </h2>
-                {lifeGoals.length > 0 ? (
-                    <Accordion type="multiple" className="w-full space-y-0">
-                        {lifeGoals.map(goal => (
-                            <LifeGoalCard
-                                key={goal.id}
-                                goal={goal}
-                                habits={habits}
-                                onEditGoal={handleOpenLifeGoalDialogForEdit}
-                                onDeleteGoal={handleDeleteLifeGoal}
-                                onAddHabit={handleOpenAddHabitDialog}
-                                onToggleHabitComplete={handleToggleHabitComplete}
-                                onUpdateGoalStatus={handleUpdateGoalStatus}
-                            />
-                        ))}
-                    </Accordion>
-                ) : (
-                    <p className="text-muted-foreground">No life goals yet. Add one to start your journey!</p>
-                )}
-              </div>
-
-              <div id="todo-section">
-                <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
-                  <ListTodo className="text-primary" />
-                  <span>To-Do {selectedPlanId ? `- ${plans.find(p => p.id === selectedPlanId)?.title}` : '- Unplanned'}</span>
-                </h2>
-                {todoTasks.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {todoTasks.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        onEdit={handleOpenAddTaskDialogForEdit}
-                        onDelete={handleDeleteTask}
-                        onToggleComplete={handleToggleComplete}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">{selectedPlanId ? 'No to-do tasks in this plan.' : "You're all caught up with unplanned tasks!"}</p>
-                )}
-              </div>
-              
-              {completedTasks.length > 0 && (
-                <div>
-                  <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold tracking-tight">
-                    <CheckCircle2 className="text-green-500" />
-                    <span>Completed</span>
-                  </h2>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {completedTasks.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        onEdit={handleOpenAddTaskDialogForEdit}
-                        onDelete={handleDeleteTask}
-                        onToggleComplete={handleToggleComplete}
-                      />
-                    ))}
-                  </div>
-                </div>
+    <main className="min-h-screen bg-neutral-950 px-4 py-10 text-neutral-900 sm:px-8">
+      <div className="mx-auto mb-6 max-w-3xl text-white">
+        <h1 className="text-2xl font-semibold">{title}</h1>
+        <p className="mt-2 text-sm text-neutral-300">
+          Prototype of your 3 requested mobile screens using one interactive preview.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveScreen(tab.key)}
+              className={cn(
+                "rounded-full px-4 py-2 text-sm font-medium transition",
+                activeScreen === tab.key
+                  ? "bg-white text-neutral-950"
+                  : "bg-neutral-800 text-neutral-200 hover:bg-neutral-700"
               )}
-            </main>
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <AddTaskDialog
-        key={editingTask?.id ?? "new"}
-        open={isAddTaskDialogOpen}
-        onOpenChange={setIsAddTaskDialogOpen}
-        task={editingTask}
-        onSave={handleSaveTask}
-        plans={plans}
-      />
-      <AddPlanDialog
-        key={editingPlan?.id ?? "new-plan"}
-        open={isAddPlanDialogOpen}
-        onOpenChange={setIsAddPlanDialogOpen}
-        plan={editingPlan}
-        onSave={handleSavePlan}
-      />
-      <AddLifeGoalDialog 
-        key={editingLifeGoal?.id ?? "new-goal"}
-        open={isAddLifeGoalDialogOpen}
-        onOpenChange={setIsAddLifeGoalDialogOpen}
-        goal={editingLifeGoal}
-        onSave={handleSaveLifeGoal}
-      />
-      <AddHabitDialog
-        open={isAddHabitDialogOpen}
-        onOpenChange={setIsAddHabitDialogOpen}
-        onSave={handleSaveHabit}
-      />
-      <AddAffirmationDialog
-        key={editingAffirmation?.id ?? "new-affirmation"}
-        open={isAddAffirmationDialogOpen}
-        onOpenChange={setIsAddAffirmationDialogOpen}
-        affirmation={editingAffirmation}
-        onSave={handleSaveAffirmation}
-      />
-      <AddVisionBoardDialog
-        key={editingVisionBoard?.id ?? "new-vision-board"}
-        open={isAddVisionBoardDialogOpen}
-        onOpenChange={setIsAddVisionBoardDialogOpen}
-        board={editingVisionBoard}
-        onSave={handleSaveVisionBoard}
-      />
-      {activeVisionBoard && (
-        <VisionBoardSheet
-          open={isVisionBoardSheetOpen}
-          onOpenChange={setIsVisionBoardSheetOpen}
-          board={activeVisionBoard}
-          items={visionBoardItems.filter(item => item.visionBoardId === activeVisionBoard.id)}
-          onAddItem={handleSaveVisionBoardItem}
-          onDeleteItem={handleDeleteVisionBoardItem}
+      <section className="mx-auto max-w-md rounded-[2.5rem] border border-white/10 bg-white p-4 shadow-2xl">
+        {activeScreen === "home" && <HomeScreen />}
+        {activeScreen === "explore" && <ExploreScreen />}
+        {activeScreen === "journey" && <JourneyScreen />}
+      </section>
+    </main>
+  );
+}
+
+function HomeScreen() {
+  return (
+    <div className="space-y-4">
+      <article className="overflow-hidden rounded-3xl bg-gradient-to-br from-orange-200 via-amber-100 to-blue-100 p-5">
+        <p className="text-2xl">🌤️</p>
+        <p className="mt-10 text-2xl font-semibold">Hi, Ankit.</p>
+        <h2 className="text-3xl font-bold leading-tight">Hot Day: 28°C in Rishikesh, Uttarakhand</h2>
+        <button className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-medium">
+          <Droplets className="h-4 w-4 text-sky-500" /> Cooling Tips
+        </button>
+      </article>
+
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-3xl font-semibold tracking-tight">For You Today</h3>
+          <button className="inline-flex items-center text-sm font-medium text-neutral-500">
+            See All <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {quickCards.map(({ title, value, icon: Icon, color }) => (
+            <article key={title} className="overflow-hidden rounded-2xl border">
+              <div className={cn("h-20 bg-gradient-to-br", color)} />
+              <div className="space-y-1 p-2">
+                <p className="text-xs font-semibold leading-tight">{title}</p>
+                <p className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs">
+                  <Icon className="h-3 w-3" /> {value}
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <article className="rounded-2xl border bg-gradient-to-r from-lime-50 to-amber-50 p-4">
+        <p className="text-lg font-semibold">Daily Food Journey</p>
+        <div className="mt-2 grid grid-cols-3 overflow-hidden rounded-full bg-white text-center text-xs font-medium">
+          <span className="bg-lime-100 py-1">Morning</span>
+          <span className="bg-amber-100 py-1">Afternoon</span>
+          <span className="bg-indigo-100 py-1">Night</span>
+        </div>
+        <p className="mt-3 text-lg font-semibold">Cooling maintained ✅</p>
+        <p className="text-sm text-neutral-600">Keep hydrated! How about some coconut water?</p>
+      </article>
+
+      <div className="rounded-2xl bg-gradient-to-r from-green-100 to-lime-50 p-4">
+        <p className="inline-flex items-center gap-2 text-lg font-semibold">
+          <Sparkles className="h-4 w-4 text-green-700" /> Ask your body
+        </p>
+        <p className="text-sm text-neutral-700">Aaj kya khana chahiye?</p>
+      </div>
+    </div>
+  );
+}
+
+function ExploreScreen() {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 rounded-full border bg-neutral-50 px-4 py-3">
+        <Search className="h-5 w-5 text-neutral-500" />
+        <input
+          className="w-full bg-transparent text-sm outline-none"
+          placeholder="Search any food..."
+          readOnly
         />
-      )}
-      <ActivityOverviewSheet
-        open={isActivityOverviewOpen}
-        onOpenChange={setIsActivityOverviewOpen}
-        tasks={tasks}
-        lifeGoals={lifeGoals}
-        plans={plans}
-        visionBoards={visionBoards}
-      />
-    </>
+      </div>
+
+      <div className="flex gap-2 overflow-auto pb-1 text-sm">
+        {[
+          ["Recommended", "bg-emerald-100 text-emerald-900"],
+          ["Cooling", "bg-sky-100 text-sky-900"],
+          ["Energy", "bg-amber-100 text-amber-900"],
+          ["Light", "bg-orange-100 text-orange-900"],
+        ].map(([label, style]) => (
+          <span key={label} className={cn("whitespace-nowrap rounded-full px-3 py-1.5 font-medium", style)}>
+            {label}
+          </span>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {categoryCards.map((card, i) => (
+          <article key={card} className="overflow-hidden rounded-2xl border bg-white">
+            <div className={cn("h-20", i % 3 === 0 ? "bg-lime-200" : i % 3 === 1 ? "bg-amber-200" : "bg-green-200")} />
+            <div className="p-2">
+              <p className="text-sm font-semibold leading-tight">{card}</p>
+              <p className="text-xs text-neutral-500">Healthy suggestions</p>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <h3 className="text-2xl font-semibold">Browse by Type</h3>
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          ["Foods", Utensils],
+          ["Herbs", Leaf],
+          ["Spices", Sparkles],
+          ["Superfoods", Bell],
+        ].map(([label, Icon]) => (
+          <div key={label as string} className="rounded-2xl border bg-neutral-50 p-4">
+            <Icon className="mb-2 h-5 w-5 text-neutral-600" />
+            <p className="font-medium">{label as string}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function JourneyScreen() {
+  return (
+    <div className="space-y-4">
+      <article className="rounded-3xl bg-gradient-to-br from-emerald-100 via-lime-50 to-amber-50 p-5">
+        <p className="text-sm font-medium text-neutral-500">Today&apos;s Thermo Balance</p>
+        <p className="mt-2 text-4xl font-bold">82%</p>
+        <p className="text-sm text-neutral-600">You are doing great. Keep your body cool and light.</p>
+      </article>
+
+      <article className="rounded-2xl border p-4">
+        <h3 className="text-xl font-semibold">Meal Checkpoints</h3>
+        <div className="mt-3 space-y-3 text-sm">
+          <div className="flex items-center justify-between rounded-xl bg-lime-50 p-3"><span className="inline-flex items-center gap-2"><Sun className="h-4 w-4" /> Morning</span><span>Completed</span></div>
+          <div className="flex items-center justify-between rounded-xl bg-amber-50 p-3"><span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4" /> Afternoon</span><span>In progress</span></div>
+          <div className="flex items-center justify-between rounded-xl bg-indigo-50 p-3"><span className="inline-flex items-center gap-2"><Moon className="h-4 w-4" /> Night</span><span>Pending</span></div>
+        </div>
+      </article>
+
+      <article className="rounded-2xl border bg-neutral-50 p-4">
+        <h3 className="text-lg font-semibold">Smart Suggestion</h3>
+        <p className="mt-2 text-sm text-neutral-700">
+          Dinner idea: veggie khichdi + cucumber raita to improve digestion and reduce internal heat.
+        </p>
+      </article>
+    </div>
   );
 }
